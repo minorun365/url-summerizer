@@ -160,7 +160,9 @@ export class UsmStack extends cdk.Stack {
         COGNITO_CLIENT_ID: userPoolClient.userPoolClientId,
         FIRECRAWL_MCP_ENDPOINT: process.env.FIRECRAWL_MCP_ENDPOINT || 'http://localhost:3333/api',
         BEDROCK_REGION: 'us-west-2', // Bedrockのリージョン
-        LANGFUSE_API_KEY: process.env.LANGFUSE_API_KEY || '',
+        LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY || '',
+        LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY || '',
+        LANGFUSE_HOST: process.env.LANGFUSE_HOST || 'https://cloud.langfuse.com',
       },
     });
 

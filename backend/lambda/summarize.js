@@ -1,6 +1,14 @@
 // AWS BedrockのClaude 3.7を使用してコンテンツを要約するモジュール
 
 const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
+const { Langfuse } = require('langfuse');
+
+// Langfuse初期化 - 環境変数からキーを取得
+const langfuse = new Langfuse({
+  secretKey: process.env.LANGFUSE_SECRET_KEY,
+  publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+  baseUrl: process.env.LANGFUSE_HOST || 'https://cloud.langfuse.com'
+});
 
 // Bedrock RuntimeクライアントをUS西部（オレゴン）リージョンで初期化
 const bedrockClient = new BedrockRuntimeClient({
@@ -19,6 +27,20 @@ const bedrockClient = new BedrockRuntimeClient({
  * @returns {Promise<string>} - 日本語の要約テキスト
  */
 async function summarizeContent(content, maxLength = 1000) {
+  // Langfuseでトレースを作成
+  const trace = langfuse.trace({
+    name: "content_summary",
+    metadata: {
+      contentLength: content.length,
+      maxLength: maxLength
+    }
+  });
+
+  // 要約のスパンを開始
+  const span = trace.span({
+    name: "summarize_with_claude",
+    input: { contentLength: content.length, maxLength }
+  });
   try {
     console.log(`コンテンツの要約を開始 (${content.length}文字)`);
 
@@ -49,6 +71,7 @@ ${truncatedContent}
 
     // Bedrock API リクエスト
     const modelId = 'anthropic.claude-3-7-sonnet-20240620-v1:0'; // Claude 3.7 Sonnet
+    const startTime = Date.now();
     const params = {
       modelId: modelId,
       contentType: 'application/json',
@@ -66,21 +89,72 @@ ${truncatedContent}
       })
     };
 
-    // Langfuseログ記録用に処理開始を記録（実装する場合）
     console.log('Bedrock Claude 3.7による要約を開始');
+    
+    // LLM呼び出しをトラッキング
+    const generation = await trace.generation({
+      name: "claude_summarization",
+      model: modelId,
+      modelParameters: {
+        temperature: 0.1,
+        max_tokens: 4096
+      },
+      prompt: prompt,
+      startTime: new Date(startTime)
+    });
     
     const command = new InvokeModelCommand(params);
     const response = await bedrockClient.send(command);
+    
+    const endTime = Date.now();
+    const latency = endTime - startTime;
 
     // レスポンスの解析
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
     const summary = responseBody.content[0].text;
 
     console.log(`要約が生成されました (${summary.length}文字)`);
+    
+    // LLM生成を完了し、結果を記録
+    generation.end({
+      completion: summary,
+      endTime: new Date(endTime),
+      usage: {
+        promptTokens: content.length / 4, // おおよそのトークン数
+        completionTokens: summary.length / 4, // おおよそのトークン数
+      }
+    });
+    
+    // スパンを完了
+    span.end({
+      output: { summaryLength: summary.length, latencyMs: latency }
+    });
+    
+    // トレースを完了
+    trace.update({
+      output: { success: true, summaryLength: summary.length }
+    });
+    
     return summary.trim();
 
   } catch (error) {
     console.error('要約の生成中にエラーが発生しました:', error);
+    
+    // エラーを記録
+    if (span) {
+      span.end({
+        level: "error",
+        statusMessage: error.message
+      });
+    }
+    
+    if (trace) {
+      trace.update({
+        output: { success: false, error: error.message },
+        level: "error"
+      });
+    }
+    
     throw new Error(`テキスト要約に失敗しました: ${error.message}`);
   }
 }
