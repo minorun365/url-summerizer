@@ -1,7 +1,8 @@
 node_modules/
-.next/
+next/
 dist/
 .env
 .env.local
 npm-debug.log
 cdk.out/
+PROJECT_HISTORY.md
