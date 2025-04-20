@@ -40,9 +40,12 @@ export class UsmStack extends cdk.Stack {
       signInAliases: {
         email: true,
       },
-      // サインイン時に必要な情報
-      requiredAttributes: {
-        email: true,
+      // サインイン時に必要な情報 (v2.131.0では異なる属性の指定方法を使用)
+      standardAttributes: {
+        email: {
+          required: true,
+          mutable: true
+        },
       },
       // パスワードポリシー
       passwordPolicy: {

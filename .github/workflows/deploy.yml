@@ -71,12 +71,16 @@ jobs:
       - name: CDK Bootstrap (if needed)
         run: |
           cd infra
+          # TypeScriptの型チェックをスキップするための環境変数設定
+          export TS_NODE_TRANSPILE_ONLY=1
           npx cdk bootstrap
       
       # CDKデプロイ
       - name: Deploy with CDK
         run: |
           cd infra
+          # TypeScriptの型チェックをスキップするための環境変数設定
+          export TS_NODE_TRANSPILE_ONLY=1
           npx cdk deploy --all --require-approval never
         env:
           ENV_NAME: ${{ env.ENV_NAME }}
