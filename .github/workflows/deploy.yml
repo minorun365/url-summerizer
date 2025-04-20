@@ -9,12 +9,14 @@ on:
 env:
   NODE_VERSION: '20'
   AWS_REGION: 'us-west-2' # オレゴンリージョン
-  ENV_NAME: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
 
 jobs:
   build-and-deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    env:
+      ENV_NAME: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
     
     steps:
       - name: Checkout code
@@ -73,8 +75,9 @@ jobs:
           npx cdk deploy --all --require-approval never
         env:
           ENV_NAME: ${{ env.ENV_NAME }}
-          FIRECRAWL_MCP_ENDPOINT: ${{ secrets.FIRECRAWL_MCP_ENDPOINT }}
-          LANGFUSE_API_KEY: ${{ secrets.LANGFUSE_API_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
       
       # デプロイ完了通知
       - name: Deployment Status

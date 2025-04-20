@@ -59,15 +59,28 @@
 
 3. 作成したロールのARNをメモしておきます
 
-### 3. 環境変数の設定
+### 3. GitHub Environmentsの設定
 
-1. GitHubリポジトリの「Settings」→「Secrets and variables」→「Actions」に移動します
+1. GitHubリポジトリの「Settings」→「Environments」に移動します
 
-2. 以下の環境変数をリポジトリシークレットとして追加します:
+2. 以下の2つの環境を作成します:
+   - `dev`: 開発環境
+   - `prod`: 本番環境
+
+3. 各環境ごとに以下の環境変数とシークレットを設定します:
+
+   **共通のシークレット**:
    - `AWS_ROLE_ARN`: 作成したIAMロールのARN
-   - `AWS_REGION`: `us-west-2`（オレゴンリージョン）
-   - `FIRECRAWL_MCP_ENDPOINT`: Firecrawl MCPエンドポイント
-   - `LANGFUSE_API_KEY`: Langfuse APIキー（オプション）
+
+   **環境ごとのシークレットと変数**:
+   - `LANGFUSE_SECRET_KEY`: Langfuse シークレットキー
+   - `LANGFUSE_PUBLIC_KEY`: Langfuse 公開キー
+   - `LANGFUSE_HOST`: Langfuse ホスト（EU: https://cloud.langfuse.com または US: https://us.cloud.langfuse.com）
+   - `API_URL`: APIゲートウェイのURL（デプロイ後に設定）
+   - `COGNITO_USER_POOL_ID`: Cognitoユーザープールのプールタイプ（デプロイ後に設定）
+   - `COGNITO_CLIENT_ID`: Cognitoユーザープールのクライアントタイプ（デプロイ後に設定）
+
+4. 必要に応じて「環境保護ルール」を設定します（例：本番環境へのデプロイには承認を必要とするなど）
 
 ### 4. GitHub Actionsワークフローの更新
 
