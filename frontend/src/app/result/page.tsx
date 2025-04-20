@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function ResultPage() {
+// SearchParamsを利用するコンポーネント
+function ResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const url = searchParams.get("url");
@@ -113,5 +114,26 @@ export default function ResultPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// メインコンポーネント（Suspenseでラップ）
+export default function ResultPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-[70vh]">
+        <div className="w-full max-w-3xl bg-white rounded-xl shadow-sm border p-8">
+          <h1 className="text-2xl font-bold mb-6">読み込み中...</h1>
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
+          </div>
+          <p className="text-center text-gray-600">
+            ページを読み込んでいます...
+          </p>
+        </div>
+      </div>
+    }>
+      <ResultContent />
+    </Suspense>
   );
 }
