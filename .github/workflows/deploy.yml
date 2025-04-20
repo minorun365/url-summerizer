@@ -10,6 +10,11 @@ env:
   NODE_VERSION: '20'
   AWS_REGION: 'us-west-2' # オレゴンリージョン
 
+# OIDC認証のためのパーミッションを追加
+permissions:
+  id-token: write # OIDCトークンの生成に必要
+  contents: read  # リポジトリ内容の読み取りに必要
+
 jobs:
   build-and-deploy:
     name: Build and Deploy
