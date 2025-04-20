@@ -1,0 +1,84 @@
+name: Deploy URL Summerizer
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 手動実行用
+
+env:
+  NODE_VERSION: '20'
+  AWS_REGION: 'us-west-2' # オレゴンリージョン
+  ENV_NAME: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Node.js セットアップ（キャッシュなし）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # フロントエンドのビルド
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm install
+      
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
+          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_USER_POOL_ID }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID }}
+
+      # バックエンドのビルド
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm install
+      
+      # CDK用の依存関係インストール
+      - name: Install CDK Dependencies
+        run: |
+          cd infra
+          npm install
+      
+      # AWS認証設定（OIDC連携）
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      # CDKブートストラップ (初回のみ必要)
+      - name: CDK Bootstrap (if needed)
+        run: |
+          cd infra
+          npx cdk bootstrap
+      
+      # CDKデプロイ
+      - name: Deploy with CDK
+        run: |
+          cd infra
+          npx cdk deploy --all --require-approval never
+        env:
+          ENV_NAME: ${{ env.ENV_NAME }}
+          FIRECRAWL_MCP_ENDPOINT: ${{ secrets.FIRECRAWL_MCP_ENDPOINT }}
+          LANGFUSE_API_KEY: ${{ secrets.LANGFUSE_API_KEY }}
+      
+      # デプロイ完了通知
+      - name: Deployment Status
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "Environment: ${{ env.ENV_NAME }}"
+          echo "Timestamp: $(date)"
