@@ -62,11 +62,20 @@ jobs:
           NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
           NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
 
-      # バックエンドのビルド
+      # バックエンドのビルド（依存パッケージのインストールを確実に）
       - name: Install Backend Dependencies
         run: |
           cd backend
-          npm install
+          npm install --production
+          # インストール結果を確認
+          echo "バックエンド依存パッケージのインストール結果:"
+          ls -la node_modules/
+          if [ -d "node_modules/mastra" ]; then
+            echo "✅ mastraパッケージが正常にインストールされました"
+          else
+            echo "❌ mastraパッケージのインストールに失敗しました"
+            exit 1
+          fi
       
       # CDK用の依存関係インストール
       - name: Install CDK Dependencies
