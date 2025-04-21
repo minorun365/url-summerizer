@@ -32,9 +32,13 @@ export class UsmStack extends cdk.Stack {
     // ------------------------------------
     // Cognito - ユーザー認証
     // ------------------------------------
+    // スタック名に環境名を含める（リソース競合を避けるため）
+    const stackName = `usm-stack-${envName}`;
+    
     // ユーザープール
     const userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: `usm-users-${envName}`,
+      removalPolicy: envName === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
       selfSignUpEnabled: true,
       // ユーザー名（メールアドレスをユーザー名として使用）
       signInAliases: {
@@ -90,12 +94,13 @@ export class UsmStack extends cdk.Stack {
     const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
       bucketName: `usm-frontend-${envName}-${this.account}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // 開発用設定（本番環境ではRETAIN推奨）
-      autoDeleteObjects: true, // 開発用設定（本番環境では無効化推奨）
+      removalPolicy: envName === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY, 
+      autoDeleteObjects: envName === 'prod' ? false : true, // 本番環境では無効化
     });
 
     // CloudFrontディストリビューション（CDN）
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
+      comment: `URL Summerizer Frontend - ${envName}`,
       defaultBehavior: {
         origin: new origins.S3Origin(frontendBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -120,7 +125,7 @@ export class UsmStack extends cdk.Stack {
 
     // CloudFront関連のセキュリティヘッダーを設定
     const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'SecurityHeadersPolicy', {
-      responseHeadersPolicyName: `usm-security-headers-${envName}`,
+      responseHeadersPolicyName: `usm-security-headers-${envName}-${this.account.substring(0, 5)}`,
       securityHeadersBehavior: {
         contentSecurityPolicy: {
           contentSecurityPolicy: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
@@ -183,7 +188,11 @@ export class UsmStack extends cdk.Stack {
     // API Gateway - REST API
     const api = new apigateway.RestApi(this, 'UsmApi', {
       restApiName: `usm-api-${envName}`,
-      description: 'URL SummerizerアプリケーションのバックエンドAPI',
+      description: `URL SummerizerアプリケーションのバックエンドAPI (${envName})`,
+      deployOptions: {
+        stageName: envName,  // デプロイステージを環境名にする
+        loggingLevel: apigateway.MethodLoggingLevel.INFO,  // ログ設定
+      },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS, // 開発用 (本番では特定のオリジンを指定)
         allowMethods: apigateway.Cors.ALL_METHODS, // 開発用 (本番では必要なメソッドのみ指定)

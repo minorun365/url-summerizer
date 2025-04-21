@@ -2,6 +2,8 @@
 
 URLを入力すると内容をスクレイピングして日本語で要約を表示するWebアプリケーション
 
+[![GitHub Action Status](https://github.com/ユーザー名/url-summerizer/workflows/Deploy%20URL%20Summerizer/badge.svg)](https://github.com/ユーザー名/url-summerizer/actions)
+
 ## プロジェクト概要
 
 - **目的**: Webページの内容を自動的にスクレイピングし、日本語で簡潔に要約
@@ -77,10 +79,70 @@ NEXT_PUBLIC_COGNITO_USER_POOL_ID=xxx
 NEXT_PUBLIC_COGNITO_CLIENT_ID=xxx
 ```
 
-## AWS構成
+## 環境構成
+
+プロジェクトは開発環境(dev)と本番環境(prod)の2つの環境で構成されています。
+
+- **開発環境(dev)**:
+  - 機能開発とテスト用
+  - `dev`ブランチからデプロイ
+  - 開発者がテストや機能確認に使用
+
+- **本番環境(prod)**:
+  - 実際のユーザーが使用する環境
+  - `main`ブランチからデプロイ
+  - 安定性と信頼性を重視
+
+### AWS構成
 
 - **リージョン**: 
   - us-west-2 (オレゴン): メインインフラ
   - us-west-2 (オレゴン): Bedrock推論
 
 - **デプロイプロファイル**: sandbox
+
+## デプロイ方法
+
+### GitHub Actionsによる自動デプロイ
+
+1. コードをプッシュするとGitHub Actionsが自動的に実行されます
+   - `dev`ブランチへのプッシュ → 開発環境へデプロイ
+   - `main`ブランチへのプッシュ → 本番環境へデプロイ
+
+2. 手動でデプロイを実行する場合:
+   - GitHubリポジトリの「Actions」タブで「Deploy URL Summerizer」ワークフローを選択
+   - 「Run workflow」ボタンをクリック
+   - デプロイ先環境を選択（dev/prod）
+   - 「Run workflow」をクリック
+
+詳細なデプロイ手順については、[DEPLOY_INSTRUCTIONS.md](./DEPLOY_INSTRUCTIONS.md)を参照してください。
+
+### デプロイ後の設定
+
+デプロイが完了すると、以下の情報がGitHub Actionsのログに出力されます：
+
+- Cognito User Pool ID
+- Cognito User Pool Client ID
+- API Gateway URL
+- CloudFront Domain Name
+
+これらの情報をGitHubの環境変数として設定する必要があります：
+
+1. リポジトリの「Settings」→「Environments」→環境を選択
+2. 「Environment secrets」セクションで以下を設定：
+   - `COGNITO_USER_POOL_ID`
+   - `COGNITO_CLIENT_ID`
+   - `API_URL`
+
+## 環境変数の管理
+
+開発環境と本番環境それぞれに必要な環境変数を`.env.dev`と`.env.prod`として準備します。
+テンプレートは`.env.template`を参照してください。
+
+```bash
+# 環境変数ファイルのコピー
+cp .env.template .env.dev
+cp .env.template .env.prod
+
+# 各環境に合わせて値を編集
+```

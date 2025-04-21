@@ -3,8 +3,18 @@ name: Deploy URL Summerizer
 on:
   push:
     branches:
-      - main
+      - main  # 本番環境へのデプロイ
+      - dev  # 開発環境へのデプロイ
   workflow_dispatch: # 手動実行用
+    inputs:
+      environment:
+        description: 'デプロイ先環境'
+        type: choice
+        required: true
+        default: 'dev'
+        options:
+          - dev
+          - prod
 
 env:
   NODE_VERSION: '20'
@@ -19,6 +29,10 @@ jobs:
   build-and-deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
+    
+    # 環境の決定ロジック:
+    # - workflow_dispatchの場合は選択された環境を使用
+    # - pushの場合はブランチ名で判定
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     env:
       ENV_NAME: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
