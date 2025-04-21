@@ -33,7 +33,7 @@ jobs:
     # 環境の決定ロジック:
     # - workflow_dispatchの場合は選択された環境を使用
     # - pushの場合はブランチ名で判定
-    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
     env:
       ENV_NAME: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
     
