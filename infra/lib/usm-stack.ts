@@ -217,21 +217,47 @@ export class UsmStack extends cdk.Stack {
         metricsEnabled: false,
       },
       defaultCorsPreflightOptions: {
-        // 許可するオリジンのリストを作成
-        allowOrigins: [cfDomain, customDomain ? `https://${customDomain}` : undefined].filter(Boolean) as string[],
+        // すべてのオリジンを許可
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
         // 必要なメソッドのみ許可
         allowMethods: ['GET', 'POST', 'OPTIONS'],
         allowHeaders: [
           'Content-Type',
           'Authorization',
+          'X-Requested-With'
         ],
-        allowCredentials: true,
+        allowCredentials: false,
       },
     });
 
     // APIリソースとメソッド
     const summarize = api.root.addResource('summarize');
     summarize.addMethod('POST', new apigateway.LambdaIntegration(apiHandler));
+
+    // OPTIONSメソッドを明示的に追加して、CORSプリフライトリクエストを確実に処理
+    summarize.addMethod('OPTIONS', new apigateway.MockIntegration({
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Requested-With'",
+          'method.response.header.Access-Control-Allow-Methods': "'GET,POST,OPTIONS'",
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.WHEN_NO_MATCH,
+      requestTemplates: {
+        "application/json": "{\"statusCode\": 200}"
+      },
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Headers': true,
+          'method.response.header.Access-Control-Allow-Methods': true,
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }]
+    });
 
     // ------------------------------------
     // 出力

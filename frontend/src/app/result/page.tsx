@@ -30,7 +30,9 @@ function ResultContent() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest' // 明示的にリクエストタイプを指定
           },
+          mode: 'cors', // CORSモードを明示的に指定
           body: JSON.stringify({ url })
         });
 

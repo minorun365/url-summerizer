@@ -58,7 +58,28 @@ const agent = new Agent({
 exports.handler = async (event) => {
   console.log('リクエスト受信:', JSON.stringify(event));
   
+  // CORSヘッダーを共通化
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Requested-With',
+  };
+
+  // OPTIONSリクエストの場合、即座にCORSヘッダーを返す
+  if (event.httpMethod === 'OPTIONS') {
+    console.log('OPTIONSリクエスト受信: プリフライトレスポンスを返します');
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      },
+      body: JSON.stringify({ message: 'CORS preflight successful' })
+    };
+  }
+
   try {
+    console.log('リクエストボディ:', event.body || 'なし');
     // API Gateway経由の場合
     const body = event.body ? JSON.parse(event.body) : event;
     const url = body.url;
@@ -66,13 +87,10 @@ exports.handler = async (event) => {
     if (!url) {
       return {
         statusCode: 400,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Credentials': 'true',
-      },
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        },
         body: JSON.stringify({ error: 'URLが指定されていません' })
       };
     }
@@ -83,13 +101,10 @@ exports.handler = async (event) => {
     } catch (e) {
       return {
         statusCode: 400,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Credentials': 'true',
-      },
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        },
         body: JSON.stringify({ error: '有効なURLではありません' })
       };
     }
@@ -118,10 +133,7 @@ exports.handler = async (event) => {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Credentials': 'true',
+        ...corsHeaders
       },
       body: JSON.stringify({
         url: url,
@@ -133,18 +145,21 @@ exports.handler = async (event) => {
   } catch (error) {
     console.error('エラーが発生しました:', error);
     
+    // エラー情報の詳細をログに出力
+    console.error('詳細エラー情報:', error);
+    console.error('スタックトレース:', error.stack);
+    
     return {
       statusCode: 500,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Credentials': 'true',
+        ...corsHeaders
       },
       body: JSON.stringify({
         error: '処理中にエラーが発生しました',
-        message: error.message
+        message: error.message,
+        // 開発環境のみスタックトレースも返す
+        ...(process.env.NODE_ENV !== 'prod' && { stack: error.stack })
       })
     };
   }
