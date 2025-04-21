@@ -102,9 +102,25 @@ jobs:
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
       
+      # フロントエンドをS3にデプロイ
+      - name: Deploy Frontend to S3
+        run: |
+          echo "フロントエンドをS3バケットにデプロイしています..."
+          aws s3 sync frontend/.next/static s3://usm-frontend-${{ env.ENV_NAME }}/_next/static/ --delete
+          aws s3 cp frontend/public s3://usm-frontend-${{ env.ENV_NAME }}/ --recursive
+          aws s3 sync frontend/out/ s3://usm-frontend-${{ env.ENV_NAME }}/ --delete
+      
+      # CloudFrontキャッシュの無効化
+      - name: Invalidate CloudFront Cache
+        run: |
+          echo "CloudFrontキャッシュを無効化しています..."
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+      
       # デプロイ完了通知
       - name: Deployment Status
         run: |
           echo "🚀 Deployment completed successfully!"
           echo "Environment: ${{ env.ENV_NAME }}"
+          echo "CloudFront URL: ${{ secrets.CLOUDFRONT_DOMAIN_NAME }}"
+          echo "API URL: ${{ secrets.API_URL }}"
           echo "Timestamp: $(date)"

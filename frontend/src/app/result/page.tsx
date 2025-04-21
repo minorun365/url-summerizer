@@ -22,12 +22,22 @@ function ResultContent() {
 
     const fetchResult = async () => {
       try {
-        // 実際のAPIが実装されるまでモックデータを使用
-        // 実装時はここを実際のAPI呼び出しに置き換え
-        setTimeout(() => {
-          setResult("これはURLから生成された要約のサンプルです。実際の結果は、FirecrawlでスクレイピングしたコンテンツをClaude 3.7が日本語で要約したものになります。この要約は、原文の主要なポイントを簡潔にまとめ、日本語で読みやすく表現します。");
-          setLoading(false);
-        }, 2000);
+        // 実際のAPI呼び出し
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}summarize`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('APIエラーが発生しました');
+        }
+        
+        const data = await response.json();
+        setResult(data.summary);
+        setLoading(false);
       } catch (err) {
         setError("エラーが発生しました。もう一度お試しください。");
         setLoading(false);
