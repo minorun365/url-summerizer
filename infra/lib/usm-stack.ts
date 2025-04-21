@@ -170,11 +170,30 @@ export class UsmStack extends cdk.Stack {
     // ------------------------------------
     // Lambda - バックエンド
     // ------------------------------------
+    // Lambda依存関係のレイヤーを作成
+    const lambdaDependencies = new lambda.LayerVersion(this, 'LambdaDependencies', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend'), {
+        bundling: {
+          image: lambda.Runtime.NODEJS_20_X.bundlingImage,
+          command: [
+            'bash', '-c', [
+              'mkdir -p /asset-output/nodejs',
+              'cp package.json /asset-output/nodejs/',
+              'cd /asset-output/nodejs && npm install --production',
+            ].join(' && ')
+          ],
+        },
+      }),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
+      description: 'URL Summerizerの依存ライブラリ',
+    });
+
     // APIハンドラーのLambda関数
     const apiHandler = new lambda.Function(this, 'ApiHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/lambda')),
+      handler: 'lambda/index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend')),
+      layers: [lambdaDependencies],
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       environment: {

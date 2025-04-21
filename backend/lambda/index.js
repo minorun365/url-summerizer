@@ -66,7 +66,9 @@ exports.handler = async (event) => {
   };
 
   // OPTIONSリクエストの場合、即座にCORSヘッダーを返す
-  if (event.httpMethod === 'OPTIONS') {
+  // API Gatewayから呼び出される場合はhttpMethodが、直接呼び出される場合はmethodが設定される
+  if ((event.httpMethod && event.httpMethod === 'OPTIONS') || 
+      (event.requestContext && event.requestContext.http && event.requestContext.http.method === 'OPTIONS')) {
     console.log('OPTIONSリクエスト受信: プリフライトレスポンスを返します');
     return {
       statusCode: 200,
