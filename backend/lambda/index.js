@@ -1,58 +1,8 @@
 // URL-Summerizer Lambda関数のメインハンドラー
 // Mastraフレームワークを使用して、URLスクレイピングと要約を行う
 
-const { Agent, createTool } = require('mastra');
 const { scrapePage } = require('./scraping');
 const { summarizeContent } = require('./summarize');
-
-// エージェント初期化
-const agent = new Agent({
-  name: 'URL Summerizer',
-  description: 'URLの内容をスクレイピングして日本語で要約するエージェント',
-  tools: {
-    scrape_url: createTool({
-      id: 'scrape_url',
-      description: 'Firecrawlを使用してWebページの内容をスクレイピングする',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          url: {
-            type: 'string',
-            description: 'スクレイピングするURL'
-          }
-        },
-        required: ['url']
-      },
-      execute: async ({ context: { url } }) => {
-        console.log(`URLをスクレイピング中: ${url}`);
-        return await scrapePage(url);
-      }
-    }),
-    summarize_content: createTool({
-      id: 'summarize_content',
-      description: 'スクレイピングした内容をBedrockのClaude 3.7を使用して日本語で要約する',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          content: {
-            type: 'string',
-            description: '要約する元のコンテンツ'
-          },
-          maxLength: {
-            type: 'number',
-            description: '要約の最大文字数（オプション）',
-            default: 1000
-          }
-        },
-        required: ['content']
-      },
-      execute: async ({ context: { content, maxLength } }) => {
-        console.log('コンテンツを要約中...');
-        return await summarizeContent(content, maxLength);
-      }
-    })
-  }
-});
 
 // Lambda関数ハンドラー
 exports.handler = async (event) => {
@@ -66,7 +16,6 @@ exports.handler = async (event) => {
   };
 
   // OPTIONSリクエストの場合、即座にCORSヘッダーを返す
-  // API Gatewayから呼び出される場合はhttpMethodが、直接呼び出される場合はmethodが設定される
   if ((event.httpMethod && event.httpMethod === 'OPTIONS') || 
       (event.requestContext && event.requestContext.http && event.requestContext.http.method === 'OPTIONS')) {
     console.log('OPTIONSリクエスト受信: プリフライトレスポンスを返します');
@@ -81,6 +30,9 @@ exports.handler = async (event) => {
   }
 
   try {
+    // Mastraモジュールを動的にインポート (ES Module対応)
+    const { Agent, createTool } = await import('mastra');
+    
     console.log('リクエストボディ:', event.body || 'なし');
     // API Gateway経由の場合
     const body = event.body ? JSON.parse(event.body) : event;
@@ -110,6 +62,55 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: '有効なURLではありません' })
       };
     }
+    
+    // エージェント初期化
+    const agent = new Agent({
+      name: 'URL Summerizer',
+      description: 'URLの内容をスクレイピングして日本語で要約するエージェント',
+      tools: {
+        scrape_url: createTool({
+          id: 'scrape_url',
+          description: 'Firecrawlを使用してWebページの内容をスクレイピングする',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              url: {
+                type: 'string',
+                description: 'スクレイピングするURL'
+              }
+            },
+            required: ['url']
+          },
+          execute: async ({ context: { url } }) => {
+            console.log(`URLをスクレイピング中: ${url}`);
+            return await scrapePage(url);
+          }
+        }),
+        summarize_content: createTool({
+          id: 'summarize_content',
+          description: 'スクレイピングした内容をBedrockのClaude 3.7を使用して日本語で要約する',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              content: {
+                type: 'string',
+                description: '要約する元のコンテンツ'
+              },
+              maxLength: {
+                type: 'number',
+                description: '要約の最大文字数（オプション）',
+                default: 1000
+              }
+            },
+            required: ['content']
+          },
+          execute: async ({ context: { content, maxLength } }) => {
+            console.log('コンテンツを要約中...');
+            return await summarizeContent(content, maxLength);
+          }
+        })
+      }
+    });
     
     // 実行プラン作成
     const executionPlan = `
