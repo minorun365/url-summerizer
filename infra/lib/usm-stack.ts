@@ -182,12 +182,14 @@ export class UsmStack extends cdk.Stack {
         NODE_ENV: envName,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         COGNITO_CLIENT_ID: userPoolClient.userPoolClientId,
-        FIRECRAWL_API_ENDPOINT: process.env.FIRECRAWL_API_ENDPOINT || 'https://api.firecrawl.dev/v1/scrape',
+        FIRECRAWL_API_ENDPOINT: process.env.FIRECRAWL_API_ENDPOINT || '',
         FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY || '',
         BEDROCK_REGION: 'us-west-2', // Bedrockのリージョン
         LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY || '',
         LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY || '',
-        LANGFUSE_HOST: process.env.LANGFUSE_HOST || 'https://cloud.langfuse.com',
+        LANGFUSE_HOST: process.env.LANGFUSE_HOST || '',
+        // CORS設定用の環境変数
+        ALLOWED_ORIGIN: cfDomain,
       },
     });
 

@@ -24,25 +24,32 @@ function ResultContent() {
       try {
         // resultページでバックエンドAPIを呼び出して実際の処理を行う
         // ユーザーには処理中の状態をリアルタイムで表示することができる
+        console.log(`API URL: ${process.env.NEXT_PUBLIC_API_URL}summarize`);
+        
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}summarize`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ url }),
+          credentials: 'include',
+          body: JSON.stringify({ url })
         });
+
+        console.log('Response status:', response.status);
         
         if (!response.ok) {
-          throw new Error('APIエラーが発生しました');
+          const errorText = await response.text();
+          console.error('APIエラーレスポンス:', errorText);
+          throw new Error(`APIエラーが発生しました (${response.status}): ${errorText}`);
         }
         
         const data = await response.json();
         setResult(data.summary);
         setLoading(false);
       } catch (err) {
-        setError("エラーが発生しました。もう一度お試しください。");
+        setError(`エラーが発生しました：${err instanceof Error ? err.message : '不明なエラー'}`);
         setLoading(false);
-        console.error(err);
+        console.error('詳細エラー:', err);
       }
     };
 
