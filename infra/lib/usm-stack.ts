@@ -170,11 +170,11 @@ export class UsmStack extends cdk.Stack {
     // ------------------------------------
     // Lambda - バックエンド
     // ------------------------------------
-    // APIハンドラーのLambda関数 - シンプルな設定
+    // APIハンドラーのLambda関数 - サイズ制限問題対策
     const apiHandler = new lambda.Function(this, 'ApiHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'lambda/index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend')),
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/lambda')), // lambdaディレクトリだけを含める
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       environment: {

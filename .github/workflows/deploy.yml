@@ -62,20 +62,37 @@ jobs:
           NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
           NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
 
-      # バックエンドのビルド（依存パッケージのインストールを確実に）
-      - name: Install Backend Dependencies
+      # 必要な依存関係だけをLambdaディレクトリにコピー
+      - name: Prepare Lambda Dependencies
         run: |
           cd backend
           npm install --production
-          # インストール結果を確認
-          echo "バックエンド依存パッケージのインストール結果:"
-          ls -la node_modules/
+          # 必要なパッケージのみコピー
+          mkdir -p lambda/node_modules/mastra
+          mkdir -p lambda/node_modules/@aws-sdk
+          
+          # mastraパッケージをコピー
           if [ -d "node_modules/mastra" ]; then
-            echo "✅ mastraパッケージが正常にインストールされました"
+            echo "✅ mastraパッケージをコピー中..."
+            cp -r node_modules/mastra lambda/node_modules/
           else
-            echo "❌ mastraパッケージのインストールに失敗しました"
+            echo "❌ mastraパッケージが見つかりません"
             exit 1
           fi
+          
+          # AWS SDKをコピー
+          if [ -d "node_modules/@aws-sdk" ]; then
+            echo "✅ AWS SDKをコピー中..."
+            cp -r node_modules/@aws-sdk/client-bedrock-runtime lambda/node_modules/@aws-sdk/
+          fi
+          
+          # その他の必要なパッケージがあれば追加
+          cp -r node_modules/axios lambda/node_modules/ 2>/dev/null || true
+          cp -r node_modules/langfuse lambda/node_modules/ 2>/dev/null || true
+          
+          # Lambdaフォルダのサイズを確認
+          echo "Lambda フォルダサイズ:"
+          du -sh lambda/
       
       # CDK用の依存関係インストール
       - name: Install CDK Dependencies
