@@ -92,7 +92,7 @@ export class UsmStack extends cdk.Stack {
     // ------------------------------------
     // フロントエンド用のS3バケット
     const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
-      bucketName: `usm-frontend-${envName}-${this.account}`,
+      bucketName: `usm-frontend-${envName}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: envName === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY, 
       autoDeleteObjects: envName === 'prod' ? false : true, // 本番環境では無効化
@@ -124,8 +124,8 @@ export class UsmStack extends cdk.Stack {
     });
 
     // CloudFront関連のセキュリティヘッダーを設定
-const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'SecurityHeadersPolicy', {
-  responseHeadersPolicyName: `usm-security-headers-${envName}`,
+    const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'SecurityHeadersPolicy', {
+      responseHeadersPolicyName: `usm-security-headers-${envName}`,
       securityHeadersBehavior: {
         contentSecurityPolicy: {
           contentSecurityPolicy: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
@@ -191,7 +191,11 @@ const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'Securi
       description: `URL SummerizerアプリケーションのバックエンドAPI (${envName})`,
       deployOptions: {
         stageName: envName,  // デプロイステージを環境名にする
-        loggingLevel: apigateway.MethodLoggingLevel.INFO,  // ログ設定
+        // ログ設定を完全に無効化（CloudWatchロールが未設定のため）
+        loggingLevel: apigateway.MethodLoggingLevel.OFF,
+        accessLogDestination: undefined,
+        accessLogFormat: undefined,
+        metricsEnabled: false,
       },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS, // 開発用 (本番では特定のオリジンを指定)
