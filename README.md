@@ -1,157 +1,57 @@
 # URL Summerizer
 
-URLを入力すると内容をスクレイピングして日本語で要約を表示するWebアプリケーション
+URL内容の要約アプリケーション
 
-[![GitHub Action Status](https://github.com/ユーザー名/url-summerizer/workflows/Deploy%20URL%20Summerizer/badge.svg)](https://github.com/ユーザー名/url-summerizer/actions)
+## デプロイ手順
 
-## プロジェクト概要
+### 前提条件
 
-- **目的**: Webページの内容を自動的にスクレイピングし、日本語で簡潔に要約
-- **URL**: https://summery.minoruonda.com/
-- **AWS略称**: usm
+1. AWS CLIがインストールされていること
+2. AWS認証情報が設定されていること
+3. Node.jsとnpmがインストールされていること
 
-## 技術スタック
-
-### フロントエンド
-- **フレームワーク**: Next.js
-- **UI**: shadcn/UI（ホワイト基調、ターコイズアクセント）
-- **状態管理**: React Hooks
-
-### バックエンド
-- **フレームワーク**: Mastra
-- **スクレイピングツール**: Firecrawl API（直接呼び出し）
-- **LLM**: AWS Bedrock Claude 3.7（USクロスリージョン推論）
-
-### インフラストラクチャ
-- **IaC**: AWS CDK
-- **認証**: AWS Cognito
-- **監視**: Langfuse Cloud
-- **デプロイ**: AWS CloudFront + S3
-
-## アーキテクチャ
-
-```
-ユーザー → CloudFront → S3(フロントエンド) 
-                      → API Gateway → Lambda → Firecrawl/Bedrock
-                      → Cognito(認証)
-```
-
-## 機能
-
-- URLの入力と検証
-- Webコンテンツのスクレイピング
-- 日本語による要約生成
-- 処理ステータスのリアルタイム表示
-- ユーザー認証（Cognito）
-
-## ディレクトリ構造
-
-```
-url-summerizer/
-├── README.md
-├── frontend/              # Next.jsフロントエンド
-│   ├── src/
-│   │   ├── app/           # ページ
-│   │   ├── components/    # UIコンポーネント
-│   │   └── lib/           # ユーティリティ
-├── backend/               # バックエンド関連
-│   └── lambda/            # Lambda関数
-└── infra/                 # AWS CDK
-    ├── bin/
-    └── lib/
-```
-
-## ローカル環境構築
+### バックエンドのデプロイ
 
 ```bash
-# フロントエンド開発サーバー起動
-cd frontend
+# backendディレクトリで依存パッケージをインストール
+cd backend
 npm install
-npm run dev
+
+# infraディレクトリでCDKをデプロイ
+cd ../infra
+npm install
+npx cdk deploy
 ```
 
-## 環境変数
+## CORS問題が発生した場合の対処方法
 
-```
-# frontend/.env.local
-NEXT_PUBLIC_API_URL=xxx
-NEXT_PUBLIC_COGNITO_USER_POOL_ID=xxx
-NEXT_PUBLIC_COGNITO_CLIENT_ID=xxx
-```
+CORS（Cross-Origin Resource Sharing）エラーが発生した場合は、以下の対処法を試してください：
 
-## 環境構成
+1. **バックエンド側のCORS設定が正しくされているか確認**
+   - Lambda関数内のCORSヘッダー設定がすべてのレスポンスで一貫しているか
+   - APIゲートウェイのCORS設定が有効になっているか
 
-プロジェクトは開発環境(dev)と本番環境(prod)の2つの環境で構成されています。
+2. **環境変数の確認**
+   - `ALLOWED_ORIGIN`環境変数が正しく設定されているか
 
-- **開発環境(dev)**:
-  - 機能開発とテスト用
-  - `dev`ブランチからデプロイ
-  - 開発者がテストや機能確認に使用
+3. **フロントエンドからのリクエスト設定**
+   - フロントエンドのfetch設定で、credentials: 'include'を使用していないか
+   - credentials: 'include'とAccess-Control-Allow-Origin: '*'は共存できないため、どちらかを変更する必要があります
 
-- **本番環境(prod)**:
-  - 実際のユーザーが使用する環境
-  - `main`ブランチからデプロイ
-  - 安定性と信頼性を重視
+4. **デバッグのためのLambda関数エラーログ確認**
+   - CloudWatch Logsでエラーメッセージを確認する
 
-### AWS構成
+## mastraパッケージがない場合のエラー
 
-- **リージョン**: 
-  - us-west-2 (オレゴン): メインインフラ
-  - us-west-2 (オレゴン): Bedrock推論
+Lambda関数で「Cannot find module 'mastra'」エラーが発生した場合：
 
-- **デプロイプロファイル**: sandbox
-
-## デプロイ方法
-
-### GitHub Actionsによる自動デプロイ
-
-1. コードをプッシュするとGitHub Actionsが自動的に実行されます
-   - `dev`ブランチへのプッシュ → 開発環境へデプロイ
-   - `main`ブランチへのプッシュ → 本番環境へデプロイ
-
-2. 手動でデプロイを実行する場合:
-   - GitHubリポジトリの「Actions」タブで「Deploy URL Summerizer」ワークフローを選択
-   - 「Run workflow」ボタンをクリック
-   - デプロイ先環境を選択（dev/prod）
-   - 「Run workflow」をクリック
-
-詳細なデプロイ手順については、[DEPLOY_INSTRUCTIONS.md](./DEPLOY_INSTRUCTIONS.md)を参照してください。
-
-### デプロイ後の設定
-
-デプロイが完了すると、以下の情報がGitHub Actionsのログに出力されます：
-
-- Cognito User Pool ID
-- Cognito User Pool Client ID
-- API Gateway URL
-- CloudFront Domain Name
-
-これらの情報をGitHubの環境変数として設定する必要があります：
-
-1. リポジトリの「Settings」→「Environments」→環境を選択
-2. 「Environment variables」セクションで以下を設定（Variables）：
-   - `COGNITO_USER_POOL_ID`
-   - `COGNITO_CLIENT_ID`
-   - `API_URL`
-   - `FIRECRAWL_API_ENDPOINT`: `https://api.firecrawl.dev/v1/scrape`
-   - `CLOUDFRONT_DISTRIBUTION_ID`
-   - `CLOUDFRONT_DOMAIN_NAME`
-
-3. 「Environment secrets」セクションで以下を設定（Secrets）：
-   - `FIRECRAWL_API_KEY`: Firecrawlから取得したAPIキー
-   - `LANGFUSE_SECRET_KEY`
-   - `LANGFUSE_PUBLIC_KEY`
-   - `LANGFUSE_HOST`
-
-## 環境変数の管理
-
-開発環境と本番環境それぞれに必要な環境変数を`.env.dev`と`.env.prod`として準備します。
-テンプレートは`.env.template`を参照してください。
+1. backendディレクトリでnpm installを実行してから、CDKをデプロイしてください
 
 ```bash
-# 環境変数ファイルのコピー
-cp .env.template .env.dev
-cp .env.template .env.prod
-
-# 各環境に合わせて値を編集
+cd backend
+npm install
+cd ../infra
+npx cdk deploy
 ```
+
+2. これはLambda関数がnode_modulesディレクトリ内のmastraパッケージを見つけられないために発生します
