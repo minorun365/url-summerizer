@@ -16,8 +16,8 @@ export default function Home() {
     setLoading(true);
     
     try {
-      // 実際のAPI呼び出しは本番環境で実装
-      // ここではクライアント側のみの処理でページ遷移
+      // ホームページではAPI呼び出しを行わず、URLパラメータを渡してresultページに遷移
+      // APIリクエストの処理はresultページで行うことで、処理状況をリアルタイムで表示できる
       router.push(`/result?url=${encodeURIComponent(url)}`);
     } catch (error) {
       console.error("Error:", error);

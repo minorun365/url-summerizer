@@ -9,11 +9,11 @@ const { summarizeContent } = require('./summarize');
 const agent = new Agent({
   name: 'URL Summerizer',
   description: 'URLの内容をスクレイピングして日本語で要約するエージェント',
-  tools: [
-    createTool({
-      name: 'scrape_url',
+  tools: {
+    scrape_url: createTool({
+      id: 'scrape_url',
       description: 'Firecrawlを使用してWebページの内容をスクレイピングする',
-      parameters: {
+      inputSchema: {
         type: 'object',
         properties: {
           url: {
@@ -23,15 +23,15 @@ const agent = new Agent({
         },
         required: ['url']
       },
-      handler: async ({ url }) => {
+      execute: async ({ context: { url } }) => {
         console.log(`URLをスクレイピング中: ${url}`);
         return await scrapePage(url);
       }
     }),
-    createTool({
-      name: 'summarize_content',
+    summarize_content: createTool({
+      id: 'summarize_content',
       description: 'スクレイピングした内容をBedrockのClaude 3.7を使用して日本語で要約する',
-      parameters: {
+      inputSchema: {
         type: 'object',
         properties: {
           content: {
@@ -46,12 +46,12 @@ const agent = new Agent({
         },
         required: ['content']
       },
-      handler: async ({ content, maxLength }) => {
+      execute: async ({ context: { content, maxLength } }) => {
         console.log('コンテンツを要約中...');
         return await summarizeContent(content, maxLength);
       }
     })
-  ]
+  }
 });
 
 // Lambda関数ハンドラー

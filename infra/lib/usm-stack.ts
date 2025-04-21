@@ -70,23 +70,6 @@ export class UsmStack extends cdk.Stack {
       },
     });
 
-    // アプリクライアント
-    const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
-      userPool,
-      authFlows: {
-        userPassword: true,
-        userSrp: true,
-      },
-      supportedIdentityProviders: [
-        cognito.UserPoolClientIdentityProvider.COGNITO,
-      ],
-      // コールバックURLs（アプリのURLに適宜変更）
-      oAuth: {
-        callbackUrls: [`https://summery.minoruonda.com/auth/callback`],
-        logoutUrls: [`https://summery.minoruonda.com/`],
-      },
-    });
-
     // ------------------------------------
     // S3 - フロントエンドデプロイ
     // ------------------------------------
@@ -121,6 +104,39 @@ export class UsmStack extends cdk.Stack {
           responsePagePath: '/index.html',
         },
       ],
+    });
+    
+    // コールバックURLリストを作成
+    const callbackUrls = [];
+    const logoutUrls = [];
+    
+    // CloudFrontのドメインを常に追加
+    const cfDomain = `https://${distribution.distributionDomainName}`;
+    callbackUrls.push(`${cfDomain}/auth/callback`);
+    logoutUrls.push(cfDomain);
+    
+    // カスタムドメインが設定されている場合は追加
+    const customDomain = process.env.CUSTOM_DOMAIN || '';
+    if (customDomain) {
+      callbackUrls.push(`https://${customDomain}/auth/callback`);
+      logoutUrls.push(`https://${customDomain}`);
+    }
+
+    // アプリクライアント
+    const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
+      userPool,
+      authFlows: {
+        userPassword: true,
+        userSrp: true,
+      },
+      supportedIdentityProviders: [
+        cognito.UserPoolClientIdentityProvider.COGNITO,
+      ],
+      // 動的にコールバックURLを設定
+      oAuth: {
+        callbackUrls: callbackUrls,
+        logoutUrls: logoutUrls,
+      },
     });
 
     // CloudFront関連のセキュリティヘッダーを設定
@@ -166,7 +182,8 @@ export class UsmStack extends cdk.Stack {
         NODE_ENV: envName,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         COGNITO_CLIENT_ID: userPoolClient.userPoolClientId,
-        FIRECRAWL_MCP_ENDPOINT: process.env.FIRECRAWL_MCP_ENDPOINT || 'http://localhost:3333/api',
+        FIRECRAWL_API_ENDPOINT: process.env.FIRECRAWL_API_ENDPOINT || 'https://api.firecrawl.dev/v1/scrape',
+        FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY || '',
         BEDROCK_REGION: 'us-west-2', // Bedrockのリージョン
         LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY || '',
         LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY || '',
@@ -198,8 +215,10 @@ export class UsmStack extends cdk.Stack {
         metricsEnabled: false,
       },
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS, // 開発用 (本番では特定のオリジンを指定)
-        allowMethods: apigateway.Cors.ALL_METHODS, // 開発用 (本番では必要なメソッドのみ指定)
+        // 許可するオリジンのリストを作成
+        allowOrigins: [cfDomain, customDomain ? `https://${customDomain}` : undefined].filter(Boolean) as string[],
+        // 必要なメソッドのみ許可
+        allowMethods: ['GET', 'POST', 'OPTIONS'],
         allowHeaders: [
           'Content-Type',
           'Authorization',

@@ -22,7 +22,8 @@ function ResultContent() {
 
     const fetchResult = async () => {
       try {
-        // 実際のAPI呼び出し
+        // resultページでバックエンドAPIを呼び出して実際の処理を行う
+        // ユーザーには処理中の状態をリアルタイムで表示することができる
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}summarize`, {
           method: 'POST',
           headers: {

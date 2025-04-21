@@ -9,17 +9,14 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true, // S3にデプロイするため画像最適化を無効化
   },
+  // 環境変数の設定（ビルド時に埋め込まれる）
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-    NEXT_PUBLIC_COGNITO_USER_POOL_ID: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID,
-    NEXT_PUBLIC_COGNITO_CLIENT_ID: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID,
-  },
-  // 環境変数をビルド時に設定
-  publicRuntimeConfig: {
-    apiUrl: process.env.NEXT_PUBLIC_API_URL || '',
-    cognitoUserPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || '',
-    cognitoClientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
+    NEXT_PUBLIC_COGNITO_USER_POOL_ID: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || '',
+    NEXT_PUBLIC_COGNITO_CLIENT_ID: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '',
+    ENV_NAME: process.env.ENV_NAME || 'dev'
   }
+  // publicRuntimeConfigは削除（静的エクスポートではサポートされない）
 };
 
 export default nextConfig;

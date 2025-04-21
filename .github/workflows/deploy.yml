@@ -101,6 +101,8 @@ jobs:
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
+          FIRECRAWL_API_ENDPOINT: ${{ vars.FIRECRAWL_API_ENDPOINT}}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
       
       # フロントエンドをS3にデプロイ
       - name: Deploy Frontend to S3

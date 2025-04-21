@@ -19,7 +19,7 @@ URLを入力すると内容をスクレイピングして日本語で要約を�
 
 ### バックエンド
 - **フレームワーク**: Mastra
-- **スクレイピングツール**: Firecrawl
+- **スクレイピングツール**: Firecrawl API（直接呼び出し）
 - **LLM**: AWS Bedrock Claude 3.7（USクロスリージョン推論）
 
 ### インフラストラクチャ
@@ -129,10 +129,19 @@ NEXT_PUBLIC_COGNITO_CLIENT_ID=xxx
 これらの情報をGitHubの環境変数として設定する必要があります：
 
 1. リポジトリの「Settings」→「Environments」→環境を選択
-2. 「Environment secrets」セクションで以下を設定：
+2. 「Environment variables」セクションで以下を設定（Variables）：
    - `COGNITO_USER_POOL_ID`
    - `COGNITO_CLIENT_ID`
    - `API_URL`
+   - `FIRECRAWL_API_ENDPOINT`: `https://api.firecrawl.dev/v1/scrape`
+   - `CLOUDFRONT_DISTRIBUTION_ID`
+   - `CLOUDFRONT_DOMAIN_NAME`
+
+3. 「Environment secrets」セクションで以下を設定（Secrets）：
+   - `FIRECRAWL_API_KEY`: Firecrawlから取得したAPIキー
+   - `LANGFUSE_SECRET_KEY`
+   - `LANGFUSE_PUBLIC_KEY`
+   - `LANGFUSE_HOST`
 
 ## 環境変数の管理
 
