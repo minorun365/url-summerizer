@@ -58,9 +58,9 @@ jobs:
           cd frontend
           npm run build
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
-          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_USER_POOL_ID }}
-          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID }}
+          NEXT_PUBLIC_API_URL: ${{ vars.API_URL }}
+          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
 
       # バックエンドのビルド
       - name: Install Backend Dependencies
@@ -114,13 +114,13 @@ jobs:
       - name: Invalidate CloudFront Cache
         run: |
           echo "CloudFrontキャッシュを無効化しています..."
-          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+          aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
       
       # デプロイ完了通知
       - name: Deployment Status
         run: |
           echo "🚀 Deployment completed successfully!"
           echo "Environment: ${{ env.ENV_NAME }}"
-          echo "CloudFront URL: ${{ secrets.CLOUDFRONT_DOMAIN_NAME }}"
-          echo "API URL: ${{ secrets.API_URL }}"
+          echo "CloudFront URL: ${{ vars.CLOUDFRONT_DOMAIN_NAME }}"
+          echo "API URL: ${{ vars.API_URL }}"
           echo "Timestamp: $(date)"
