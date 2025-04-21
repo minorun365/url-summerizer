@@ -124,8 +124,8 @@ export class UsmStack extends cdk.Stack {
     });
 
     // CloudFront関連のセキュリティヘッダーを設定
-    const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'SecurityHeadersPolicy', {
-      responseHeadersPolicyName: `usm-security-headers-${envName}-${this.account.substring(0, 5)}`,
+const responseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'SecurityHeadersPolicy', {
+  responseHeadersPolicyName: `usm-security-headers-${envName}`,
       securityHeadersBehavior: {
         contentSecurityPolicy: {
           contentSecurityPolicy: "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
