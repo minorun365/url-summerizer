@@ -113,7 +113,7 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.get-aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/url-summerizer-lambda-${{ env.ENV_NAME }}:latest
-          platforms: linux/arm64
+          platforms: linux/amd64
           # Lambda互換性のために追加設定
           provenance: false
           sbom: false

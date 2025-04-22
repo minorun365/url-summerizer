@@ -187,8 +187,8 @@ export class UsmStack extends cdk.Stack {
       // ECRからイメージを使用
       code: lambda.DockerImageCode.fromEcr(ecrRepo, { tag: 'latest' }),
       memorySize: 256,
-      // ARM64アーキテクチャを指定（Dockerfileのイメージアーキテクチャと一致させる）
-      architecture: lambda.Architecture.ARM_64,
+      // x86/AMD64アーキテクチャを指定（Dockerfileのイメージアーキテクチャと一致）
+      architecture: lambda.Architecture.X86_64,
       timeout: cdk.Duration.seconds(30),
       environment: {
         // 環境変数
@@ -217,30 +217,45 @@ export class UsmStack extends cdk.Stack {
     });
     apiHandler.addToRolePolicy(bedrockPolicy);
 
+    // フロントエンドのURLを取得（CloudFrontドメインなど）
+    const frontendUrl = process.env.CLOUDFRONT_DOMAIN_NAME ? 
+      `https://${process.env.CLOUDFRONT_DOMAIN_NAME}` : 
+      (customDomain ? `https://${customDomain}` : '*');
+
     // API Gateway - REST API
     const api = new apigateway.RestApi(this, 'UsmApi', {
       restApiName: `usm-api-${envName}`,
       description: `URL SummerizerアプリケーションのバックエンドAPI (${envName})`,
       deployOptions: {
         stageName: envName,  // デプロイステージを環境名にする
-        // ログ設定を完全に無効化（CloudWatchロールが未設定のため）
-        loggingLevel: apigateway.MethodLoggingLevel.OFF,
-        accessLogDestination: undefined,
-        accessLogFormat: undefined,
-        metricsEnabled: false,
+        // CloudWatchロギングを有効化（エラー調査のため）
+        loggingLevel: apigateway.MethodLoggingLevel.ERROR,
+        metricsEnabled: true
       },
       defaultCorsPreflightOptions: {
-        // すべてのオリジンを許可
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        // 明示的にCloudFrontドメインとカスタムドメインを許可
+        allowOrigins: [
+          frontendUrl,
+          'https://dm4kttwg4xgfz.cloudfront.net',
+          'http://localhost:3000',
+          '*'
+        ],
         // 必要なメソッドのみ許可
         allowMethods: ['GET', 'POST', 'OPTIONS'],
         allowHeaders: [
           'Content-Type',
           'Authorization',
-          'X-Requested-With'
+          'X-Requested-With',
+          'Origin',
+          'Accept'
         ],
-        allowCredentials: false,
+        allowCredentials: true, // 認証情報を含める
+        // レスポンスに CORS ヘッダーを確実に含める
+        exposeHeaders: ['WWW-Authenticate', 'Server-Authorization'],
+        maxAge: cdk.Duration.seconds(86400), // キャッシュ期間24時間
       },
+      // バイナリメディアタイプのサポート
+      binaryMediaTypes: ['application/json', 'image/*'],
     });
 
     // APIリソースとメソッド
