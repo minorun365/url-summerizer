@@ -175,21 +175,17 @@ export class UsmStack extends cdk.Stack {
     // DockerイメージURIをコンテキストから取得（GitHub Actionsでビルドされたイメージ）
     const dockerImageUri = this.node.tryGetContext('dockerImageUri');
     
+    // ECRリポジトリを参照
+    const ecrRepo = ecr.Repository.fromRepositoryName(
+      this, 
+      'ECRRepo', 
+      `url-summerizer-lambda-${envName}`
+    );
+    
     // Docker Lambdaを使用したAPIハンドラー
     const apiHandler = new lambda.DockerImageFunction(this, 'ApiHandler', {
-      // 外部ビルドイメージがあればそれを使用、なければローカルビルド
-      code: dockerImageUri 
-        ? lambda.DockerImageCode.fromEcr(
-            ecr.Repository.fromRepositoryName(
-              this, 
-              'ECRRepo', 
-              `url-summerizer-lambda-${envName}`
-            ),
-            {
-              tag: 'latest'
-            }
-          )
-        : lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../..')),
+      // ECRからイメージを使用
+      code: lambda.DockerImageCode.fromEcr(ecrRepo, { tag: 'latest' }),
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       environment: {
