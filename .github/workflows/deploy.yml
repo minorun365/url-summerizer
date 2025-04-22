@@ -134,6 +134,25 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
       
+      # ディスク容量を確保するための事前クリーンアップ
+      - name: Free disk space
+        run: |
+          echo "ディスク容量を確認しています..."
+          df -h
+          
+          echo "不要なファイルを削除しています..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo apt-get clean
+          
+          # node_modulesを削除してイメージサイズを小さくする
+          find . -name "node_modules" -type d -prune -exec rm -rf '{}' +
+          
+          echo "ディスク容量解放後の確認"
+          df -h
+
       # CDKブートストラップ (初回のみ必要)
       - name: CDK Bootstrap (if needed)
         run: |
@@ -141,7 +160,10 @@ jobs:
           # TypeScriptの型チェックをスキップするための環境変数設定
           export TS_NODE_TRANSPILE_ONLY=1
           npx cdk bootstrap
-      
+          
+          # キャッシュをクリア
+          rm -rf cdk.out
+
       # CDKデプロイ
       - name: Deploy with CDK
         run: |
@@ -152,7 +174,8 @@ jobs:
           # コンテキスト変数としてイメージURIを渡す
           npx cdk deploy --all \
             --require-approval never \
-            --context dockerImageUri=$IMAGE_URI
+            --context dockerImageUri=$IMAGE_URI \
+            --exclusively
         env:
           ENV_NAME: ${{ env.ENV_NAME }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
@@ -161,13 +184,24 @@ jobs:
           FIRECRAWL_API_ENDPOINT: ${{ vars.FIRECRAWL_API_ENDPOINT}}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
       
-      # フロントエンドをS3にデプロイ
-      - name: Deploy Frontend to S3
+      # フロントエンドのビルドとS3デプロイ
+      - name: Rebuild and Deploy Frontend to S3
         run: |
+          echo "フロントエンドを再ビルドしています..."
+          cd frontend
+          npm ci --production
+          npm run build
+          
           echo "フロントエンドをS3バケットにデプロイしています..."
-          aws s3 sync frontend/.next/static s3://usm-frontend-${{ env.ENV_NAME }}/_next/static/ --delete
-          aws s3 cp frontend/public s3://usm-frontend-${{ env.ENV_NAME }}/ --recursive
-          aws s3 sync frontend/out/ s3://usm-frontend-${{ env.ENV_NAME }}/ --delete
+          aws s3 cp public s3://usm-frontend-${{ env.ENV_NAME }}/ --recursive
+          
+          if [ -d ".next/static" ]; then
+            aws s3 sync .next/static s3://usm-frontend-${{ env.ENV_NAME }}/_next/static/ --delete
+          fi
+          
+          if [ -d "out" ]; then
+            aws s3 sync out/ s3://usm-frontend-${{ env.ENV_NAME }}/ --delete
+          fi
       
       # CloudFrontキャッシュの無効化
       - name: Invalidate CloudFront Cache
