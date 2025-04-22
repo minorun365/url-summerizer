@@ -223,9 +223,11 @@ export class UsmStack extends cdk.Stack {
       description: `URL SummerizerアプリケーションのバックエンドAPI (${envName})`,
       deployOptions: {
         stageName: envName,  // デプロイステージを環境名にする
-        // CloudWatchロギングを有効化（エラー調査のため）
-        loggingLevel: apigateway.MethodLoggingLevel.ERROR,
-        metricsEnabled: true
+        // CloudWatchログ設定を無効化（IAMロールが設定されていないため）
+        loggingLevel: apigateway.MethodLoggingLevel.OFF,
+        accessLogDestination: undefined,
+        accessLogFormat: undefined,
+        metricsEnabled: false
       },
       defaultCorsPreflightOptions: {
         // ワイルドカードを使用した場合は認証情報を含められない
