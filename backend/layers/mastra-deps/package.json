@@ -1,0 +1,9 @@
+{
+  "name": "mastra-deps-layer",
+  "version": "1.0.0",
+  "description": "Mastra dependencies layer for Lambda",
+  "dependencies": {
+    "commander": "^11.0.0",
+    "@huggingface/inference": "^2.6.1"
+  }
+}

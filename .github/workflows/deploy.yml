@@ -62,33 +62,55 @@ jobs:
           NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
           NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
 
-      # Lambda Layersの依存関係をインストール
+      # npm workspacesを利用したLambda Layersの依存関係インストール
       - name: Prepare Lambda Layers
         run: |
-          # 最小限のMastraレイヤーを作成
           cd backend
-          npm install --production
           
-          echo "最小限のMastraレイヤーを作成します..."
-          mkdir -p ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra
-          # mastraディレクトリ全体をコピー（チャンクファイルも含む）
-          cp -r node_modules/mastra/dist ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/
-          cp -r node_modules/mastra/package.json ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/
+          # workspacesを使って一括インストール
+          echo "npm workspacesを使用して依存関係をインストールします..."
+          npm install --workspaces --production
           
-          # チャンクファイルが存在するか確認
-          echo "Mastraのチャンクファイルを確認..."
-          find ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/dist -name "chunk-*.js" | while read -r chunk_file; do
-            echo "  ✓ $(basename "$chunk_file")"
-          done
+          # mastra-coreレイヤーの内容確認
+          echo "Mastraコアレイヤーの内容:"
+          find layers/mastra-core -type f | grep -v "node_modules" | sort
+          du -sh layers/mastra-core
           
-          # 依存関係の調査
-          echo "Mastraの依存関係を調査して必要なものをコピーします..."
-          mkdir -p ../lambda-layers/minimal-mastra/nodejs/node_modules/@huggingface
-          cp -r node_modules/@huggingface/inference ../lambda-layers/minimal-mastra/nodejs/node_modules/@huggingface/ 2>/dev/null || true
+          # mastra-depsレイヤーに必要なパッケージがあることを確認
+          echo "Mastra依存パッケージレイヤーの内容:"
+          find layers/mastra-deps/nodejs/node_modules -maxdepth 2 -type d | sort
           
-          # 最小限のレイヤーサイズを確認
-          echo "最小限Mastraレイヤーのサイズ:"
-          du -sh ../lambda-layers/minimal-mastra/
+          # インストールされたcommanderパッケージの確認
+          if [ -d "layers/mastra-deps/nodejs/node_modules/commander" ]; then
+            echo "✓ commanderパッケージが正常にインストールされました"
+            du -sh layers/mastra-deps/nodejs/node_modules/commander
+          else
+            echo "❌ commanderパッケージが見つかりません"
+            
+            # 追加でインストール
+            echo "commanderパッケージを明示的にインストールします..."
+            cd layers/mastra-deps/nodejs
+            npm install commander@11.0.0 --save
+            cd ../../..
+          fi
+          
+          # @huggingface/inferenceパッケージの確認
+          if [ -d "layers/mastra-deps/nodejs/node_modules/@huggingface/inference" ]; then
+            echo "✓ @huggingface/inferenceパッケージが正常にインストールされました"
+            du -sh layers/mastra-deps/nodejs/node_modules/@huggingface/inference
+          else
+            echo "❌ @huggingface/inferenceパッケージが見つかりません"
+            
+            # 追加でインストール
+            echo "@huggingface/inferenceパッケージを明示的にインストールします..."
+            cd layers/mastra-deps/nodejs
+            npm install @huggingface/inference@2.6.1 --save
+            cd ../../..
+          fi
+          
+          # Lambda関数ディレクトリの依存関係確認
+          echo "Lambda関数の依存関係:"
+          find lambda/node_modules -maxdepth 2 -type d | sort
           
           # Utilsレイヤーの依存関係をインストール
           cd ../lambda-layers/utils/nodejs
@@ -97,8 +119,6 @@ jobs:
           # レイヤーのサイズを確認
           echo "Utilsレイヤーのサイズ:"
           du -sh .
-          echo "Utilsレイヤーに含まれるパッケージ:"
-          find node_modules -maxdepth 2 -type d | sort
       
       # CDK用の依存関係インストール
       - name: Install CDK Dependencies

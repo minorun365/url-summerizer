@@ -1,13 +1,8 @@
 {
-  "name": "url-summerizer-backend",
+  "name": "url-summerizer-lambda",
   "version": "1.0.0",
-  "description": "URL要約アプリケーションのバックエンド",
-  "private": true,
-  "workspaces": [
-    "lambda",
-    "layers/mastra-core",
-    "layers/mastra-deps"
-  ],
+  "description": "URL要約Lambda関数",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

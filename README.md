@@ -21,15 +21,12 @@ URL内容の要約アプリケーション
 ### ローカルでのデプロイ
 
 ```bash
-# Lambda Layersの依存関係をインストール
-cd lambda-layers/mastra/nodejs
-npm install --production
-
-cd ../../utils/nodejs
-npm install --production
+# npm workspacesを使って依存関係をインストール
+cd backend
+npm install --workspaces --production
 
 # infraディレクトリでCDKをデプロイ
-cd ../../infra
+cd ../infra
 npm install
 npx cdk deploy
 ```
@@ -38,52 +35,66 @@ npx cdk deploy
 
 このリポジトリには、GitHub Actionsのワークフロー設定が含まれています。`main`または`dev`ブランチにプッシュすると、自動的にデプロイが実行されます。
 
-## AWS Lambda Layers
+## npm workspacesを活用したLambda Layers
 
-このプロジェクトでは、Lambda関数のサイズを最適化するためにLambda Layersを使用しています。
+このプロジェクトでは、Lambda関数のサイズを最適化するためにLambda LayersとnpmのWorkspaces機能を組み合わせて使用しています。
 
-### レイヤー構造
+### ワークスペース構造
 
 ```
-lambda-layers/
-  ├── minimal-mastra/   # mastraフレームワークの必要ファイル
-  │   └── nodejs/
-  │       ├── package.json
-  │       └── node_modules/
-  │           └── mastra/
-  │               ├── package.json
-  │               └── dist/
-  │                   ├── index.js
-  │                   ├── chunk-7OXWUU2Q.js  # 依存チャンクファイル
-  │                   └── ...  # 他の必要なチャンクファイル
-  │
-  └── utils/            # その他ユーティリティ（Axios、AWS SDK等）
-      └── nodejs/
-          ├── package.json
-          └── node_modules/
-              ├── axios/
-              ├── form-data/
-              └── @aws-sdk/
+backend/
+├── package.json (workspacesルート)
+├── lambda/      (Lambda関数コード)
+│   └── package.json
+└── layers/
+    ├── mastra-core/   (mastraパッケージ本体)
+    │   └── nodejs/
+    │       └── package.json
+    └── mastra-deps/   (mastraの依存パッケージ)
+        └── nodejs/
+            └── package.json
 ```
 
-### 最小限レイヤーの利用
+### レイヤー構成の特長
 
-mastraパッケージ全体が大きすぎる（250MB超の可能性）ため、必要最小限のファイルだけを含むカスタムレイヤーを作成しています：
+```
+Lambda関数
+│
+├── mastra-coreレイヤー
+│   └── nodejs/
+│       └── node_modules/
+│           └── mastra/
+│               ├── package.json
+│               └── dist/
+│                   ├── index.js
+│                   └── ...
+│
+├── mastra-depsレイヤー
+│   └── nodejs/
+│       └── node_modules/
+│           ├── commander/
+│           └── @huggingface/
+│
+└── utilsレイヤー
+    └── nodejs/
+        └── node_modules/
+            ├── axios/
+            ├── form-data/
+            └── @aws-sdk/
+```
 
-1. **必要なファイルのみの抽出**：
-   - `index.js`（メインエントリーポイント）
-   - `package.json`（バージョン情報）
-   - 必須の依存関係のみ
+### npm workspacesを活用する利点
 
-2. **デプロイのカスタマイズ**：
-   - GitHub Actionsで自動的に必要なファイルだけをコピー
-   - サイズを小さく保ち、Lambda関数のサイズ制限を回避
+1. **依存関係管理の簡素化**:
+   - 単一のコマンド(`npm install --workspaces`)で全ての依存関係をインストール可能
+   - 各レイヤーの依存関係が個別に管理され、クリーンな構造を維持
 
-### レイヤーの利点
+2. **サイズ制限の回避**:
+   - 依存関係を複数のレイヤーに分散し、各レイヤーを50MB以下に保つ
+   - mastraコアとその依存関係を分離することで、複雑な依存関係チェーンを適切に処理
 
-- **サイズ制限の克服**: Lambda関数本体のサイズを縮小し、250MBの制限を回避
-- **依存関係の共有**: 複数のLambda関数間で依存関係を共有することが可能
-- **デプロイ時間の短縮**: コード変更時のみデプロイすればよく、依存関係のレイヤーは再利用可能
+3. **ESモジュールの依存解決**:
+   - commanderなどのESモジュールの依存関係を明示的に含めることで、実行時のエラーを防止
 
 ## CORS問題が発生した場合の対処方法
 
@@ -120,3 +131,18 @@ const { Agent, createTool } = require('mastra');
 
 // 修正後
 const { Agent, createTool } = await import('mastra');
+```
+
+## その他の依存関係問題
+
+依存パッケージが見つからないエラー（例: commander）が発生した場合：
+
+```
+Cannot find package 'commander' imported from /opt/nodejs/node_modules/mastra/dist/index.js
+```
+
+このような場合は、以下の対処が必要です：
+
+1. 必要な依存パッケージを `backend/layers/mastra-deps/package.json` に追加
+2. `npm install --workspaces --production` を実行して依存関係を更新
+3. レイヤー構造を確認し、必要なパッケージが正しくインストールされているか確認
