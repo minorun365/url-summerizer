@@ -134,7 +134,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
       
-      # ディスク容量を確保するための事前クリーンアップ
+      # ディスク容量を確保するための事前クリーンアップ（CDKの依存関係以外）
       - name: Free disk space
         run: |
           echo "ディスク容量を確認しています..."
@@ -147,22 +147,28 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           sudo apt-get clean
           
-          # node_modulesを削除してイメージサイズを小さくする
-          find . -name "node_modules" -type d -prune -exec rm -rf '{}' +
+          # frontend以外のnode_modulesを削除（infraのnode_modulesは保持）
+          find frontend -name "node_modules" -type d -prune -exec rm -rf '{}' +
           
           echo "ディスク容量解放後の確認"
           df -h
 
-      # CDKブートストラップ (初回のみ必要)
-      - name: CDK Bootstrap (if needed)
+      # CDKの準備（ブートストラップ前）
+      - name: Prepare for CDK
+        run: |
+          cd infra
+          npm ci  # 依存関係を確実にインストール
+          npm list aws-cdk-lib || npm install aws-cdk-lib
+          # キャッシュをクリア
+          rm -rf cdk.out
+
+      # CDKブートストラップ
+      - name: CDK Bootstrap
         run: |
           cd infra
           # TypeScriptの型チェックをスキップするための環境変数設定
           export TS_NODE_TRANSPILE_ONLY=1
           npx cdk bootstrap
-          
-          # キャッシュをクリア
-          rm -rf cdk.out
 
       # CDKデプロイ
       - name: Deploy with CDK
