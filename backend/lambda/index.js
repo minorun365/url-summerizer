@@ -8,11 +8,12 @@ const { summarizeContent } = require('./summarize');
 exports.handler = async (event) => {
   console.log('リクエスト受信:', JSON.stringify(event));
   
-  // CORSヘッダーを共通化
+  // CORSヘッダーを共通化（明示的にCloudFrontドメインを含む）
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Requested-With',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Requested-With',
+    'Access-Control-Max-Age': '86400',
   };
 
   // OPTIONSリクエストの場合、即座にCORSヘッダーを返す
