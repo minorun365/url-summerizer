@@ -62,37 +62,38 @@ jobs:
           NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
           NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
 
-      # 必要な依存関係だけをLambdaディレクトリにコピー
+      # Lambda依存関係を適切にバンドル
       - name: Prepare Lambda Dependencies
         run: |
           cd backend
           npm install --production
-          # 必要なパッケージのみコピー
-          mkdir -p lambda/node_modules/mastra
-          mkdir -p lambda/node_modules/@aws-sdk
           
-          # mastraパッケージをコピー
-          if [ -d "node_modules/mastra" ]; then
-            echo "✅ mastraパッケージをコピー中..."
-            cp -r node_modules/mastra lambda/node_modules/
-          else
-            echo "❌ mastraパッケージが見つかりません"
-            exit 1
-          fi
+          # すべての依存関係を含むpackage.jsonを作成
+          cat > lambda/package.json <<EOL
+          {
+            "name": "url-summerizer-lambda",
+            "version": "1.0.0",
+            "description": "URL要約Lambda関数",
+            "main": "index.js",
+            "dependencies": {
+              "mastra": "^0.5.0-alpha.8",
+              "@aws-sdk/client-bedrock-runtime": "^3.515.0",
+              "axios": "^1.6.7",
+              "form-data": "^4.0.0",
+              "langfuse": "^2.0.0"
+            }
+          }
+          EOL
           
-          # AWS SDKをコピー
-          if [ -d "node_modules/@aws-sdk" ]; then
-            echo "✅ AWS SDKをコピー中..."
-            cp -r node_modules/@aws-sdk/client-bedrock-runtime lambda/node_modules/@aws-sdk/
-          fi
+          # Lambda用に依存関係をインストール
+          cd lambda
+          npm install --production
           
-          # その他の必要なパッケージがあれば追加
-          cp -r node_modules/axios lambda/node_modules/ 2>/dev/null || true
-          cp -r node_modules/langfuse lambda/node_modules/ 2>/dev/null || true
-          
-          # Lambdaフォルダのサイズを確認
+          # サイズ確認とリスト表示
           echo "Lambda フォルダサイズ:"
-          du -sh lambda/
+          du -sh .
+          echo "インストールされた依存パッケージ一覧："
+          find node_modules -maxdepth 2 -type d | sort
       
       # CDK用の依存関係インストール
       - name: Install CDK Dependencies
