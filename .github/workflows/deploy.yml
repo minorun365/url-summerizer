@@ -106,16 +106,22 @@ jobs:
           REPO_NAME="url-summerizer-lambda-${{ env.ENV_NAME }}"
           aws ecr describe-repositories --repository-names $REPO_NAME || aws ecr create-repository --repository-name $REPO_NAME
 
-      # DockerイメージをビルドしてECRにプッシュ
+      # DockerイメージをビルドしてECRにプッシュ (Lambda互換形式)
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ steps.get-aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/url-summerizer-lambda-${{ env.ENV_NAME }}:latest
-          platforms: linux/amd64
+          platforms: linux/arm64
+          # Lambda互換性のために追加設定
+          provenance: false
+          sbom: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Lambda関数用のビルド引数
+          build-args: |
+            LAMBDA_TASK_ROOT=/var/task
 
       # CDK依存関係インストール
       - name: Install CDK Dependencies

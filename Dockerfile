@@ -1,7 +1,8 @@
-FROM public.ecr.aws/lambda/nodejs:20
+# AWS Lambda用のベースイメージをAmazon公式の最新バージョンに変更
+FROM public.ecr.aws/lambda/nodejs:20-arm64
 
-# 作業ディレクトリを設定
-WORKDIR ${LAMBDA_TASK_ROOT}
+# 作業ディレクトリを固定
+WORKDIR /var/task
 
 # package.jsonを直接作成
 RUN echo '{ \
