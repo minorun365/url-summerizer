@@ -70,9 +70,10 @@ jobs:
       - name: Build Docker image for Lambda
         run: |
           echo "Dockerイメージをビルドしています..."
-          # プラットフォームを明示的に指定（Lambda用）
+          # プラットフォームを明示的に指定（Lambda用）かつロードオプションを追加
           docker buildx build \
             --platform linux/amd64 \
+            --load \
             -t url-summerizer-lambda:latest .
           
           # イメージサイズを確認
