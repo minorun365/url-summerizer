@@ -254,44 +254,7 @@ export class UsmStack extends cdk.Stack {
     // APIリソースとメソッド
     const summarize = api.root.addResource('summarize');
     
-    // CORS設定の強化 - プリフライトリクエスト（OPTIONS）用のモックメソッド
-    summarize.addMethod('OPTIONS', new apigateway.MockIntegration({
-      integrationResponses: [
-        {
-          statusCode: '200',
-          responseParameters: {
-            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'",
-            'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET,POST'",
-            'method.response.header.Access-Control-Allow-Origin': "'*'",
-          },
-          // 空のレスポンスボディ
-          responseTemplates: {
-            'application/json': ''
-          },
-        },
-      ],
-      // OPTIONSリクエストに対するリクエストテンプレート
-      requestTemplates: {
-        'application/json': '{"statusCode": 200}'
-      },
-    }), {
-      // OPTIONSメソッドのレスポンス設定
-      methodResponses: [
-        {
-          statusCode: '200',
-          responseParameters: {
-            'method.response.header.Access-Control-Allow-Headers': true,
-            'method.response.header.Access-Control-Allow-Methods': true,
-            'method.response.header.Access-Control-Allow-Origin': true,
-          },
-          responseModels: {
-            'application/json': apigateway.Model.EMPTY_MODEL,
-          },
-        },
-      ],
-    });
-    
-    // 通常のAPI呼び出し用のプロキシ統合
+    // 通常のAPI呼び出し用のプロキシ統合（シンプルに保つ）
     const lambdaIntegration = new apigateway.LambdaIntegration(apiHandler, {
       proxy: true,
     });
