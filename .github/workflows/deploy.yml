@@ -108,7 +108,7 @@ jobs:
 
       # DockerイメージをビルドしてECRにプッシュ
       - name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
@@ -122,6 +122,7 @@ jobs:
         run: |
           cd infra
           npm ci
+          npm install -g ts-node typescript aws-cdk
       
       # CDKアウトディレクトリをキャッシュ
       - name: Cache CDK Output
@@ -164,6 +165,13 @@ jobs:
           echo "AWS Account ID: $AWS_ACCOUNT_ID"
           echo "IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/url-summerizer-lambda-${{ env.ENV_NAME }}:latest" >> $GITHUB_ENV
 
+      # Node.js 依存関係インストール
+      - name: Install Node.js dependencies
+        run: |
+          cd infra
+          npm ci
+          npm install -g ts-node typescript aws-cdk
+
       # CDKデプロイを専用の一時ディレクトリで実行
       - name: Deploy with CDK
         run: |
@@ -174,6 +182,11 @@ jobs:
           
           # TypeScriptの型チェックをスキップするための環境変数設定
           export TS_NODE_TRANSPILE_ONLY=1
+          
+          # パスを確認
+          echo "PATH=$PATH"
+          which ts-node || echo "ts-node not found"
+          which cdk || echo "cdk not found"
           
           # CDKブートストラップ（アセットメタデータを最小化）
           npx cdk bootstrap
