@@ -235,10 +235,10 @@ export class UsmStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         // 明示的にCloudFrontドメインとカスタムドメインを許可
         allowOrigins: [
+          // ワイルドカード(*) と特定ドメインは混在できないため、特定ドメインのみを指定
           frontendUrl,
           'https://dm4kttwg4xgfz.cloudfront.net',
-          'http://localhost:3000',
-          '*'
+          'http://localhost:3000'
         ],
         // 必要なメソッドのみ許可
         allowMethods: ['GET', 'POST', 'OPTIONS'],
