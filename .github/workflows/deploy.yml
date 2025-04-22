@@ -66,7 +66,7 @@ jobs:
 
       # フロントエンドビルド成果物をアップロード
       - name: Upload Frontend Build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: |
@@ -77,7 +77,7 @@ jobs:
 
       # Dockerイメージビルドと直接ECRプッシュ
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       # AWS認証
       - name: Configure AWS credentials
@@ -96,7 +96,7 @@ jobs:
 
       # ECRログイン
       - name: Login to ECR
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ steps.get-aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
@@ -125,7 +125,7 @@ jobs:
       
       # CDKアウトディレクトリをキャッシュ
       - name: Cache CDK Output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cdk-artifact
           path: infra
@@ -143,7 +143,7 @@ jobs:
     
     steps:
       - name: Download CDK artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: cdk-artifact
           path: infra
@@ -191,7 +191,7 @@ jobs:
 
       # フロントエンドビルド成果物をダウンロード
       - name: Download Frontend Build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: frontend-build
           path: frontend
