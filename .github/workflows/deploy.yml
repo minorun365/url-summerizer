@@ -65,18 +65,27 @@ jobs:
       # Lambda Layersの依存関係をインストール
       - name: Prepare Lambda Layers
         run: |
-          # Mastraレイヤーの依存関係をインストール
-          cd lambda-layers/mastra/nodejs
+          # 最小限のMastraレイヤーを作成
+          cd backend
           npm install --production
           
-          # レイヤーのサイズを確認
-          echo "Mastraレイヤーのサイズ:"
-          du -sh .
-          echo "Mastraレイヤーに含まれるパッケージ:"
-          find node_modules -maxdepth 2 -type d | sort
+          echo "最小限のMastraレイヤーを作成します..."
+          mkdir -p ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/dist
+          # 必要なファイルだけをコピー
+          cp -r node_modules/mastra/dist/index.js ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/dist/
+          cp -r node_modules/mastra/package.json ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/
+          
+          # 依存関係の調査
+          echo "Mastraの依存関係を調査して必要なものをコピーします..."
+          mkdir -p ../lambda-layers/minimal-mastra/nodejs/node_modules/@huggingface
+          cp -r node_modules/@huggingface/inference ../lambda-layers/minimal-mastra/nodejs/node_modules/@huggingface/ 2>/dev/null || true
+          
+          # 最小限のレイヤーサイズを確認
+          echo "最小限Mastraレイヤーのサイズ:"
+          du -sh ../lambda-layers/minimal-mastra/
           
           # Utilsレイヤーの依存関係をインストール
-          cd ../../utils/nodejs
+          cd ../lambda-layers/utils/nodejs
           npm install --production
           
           # レイヤーのサイズを確認

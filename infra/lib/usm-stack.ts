@@ -173,11 +173,11 @@ export class UsmStack extends cdk.Stack {
     
     // Lambda Layers
     
-    // Mastraレイヤー - mastraフレームワークとその依存関係
-    const mastraLayer = new lambda.LayerVersion(this, 'MastraLayer', {
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda-layers/mastra')),
+    // 最小限のMastraレイヤー - 必要最小限のファイルのみ含む
+    const minimalMastraLayer = new lambda.LayerVersion(this, 'MinimalMastraLayer', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda-layers/minimal-mastra')),
       compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
-      description: 'Mastra framework and dependencies',
+      description: 'Minimal Mastra framework files only',
     });
 
     // ユーティリティレイヤー - その他の依存関係（Axios, AWS SDK等）
@@ -192,7 +192,7 @@ export class UsmStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/lambda')),
-      layers: [mastraLayer, utilsLayer], // レイヤーをアタッチ
+      layers: [minimalMastraLayer, utilsLayer], // レイヤーをアタッチ
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       environment: {

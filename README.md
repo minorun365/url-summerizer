@@ -46,13 +46,16 @@ npx cdk deploy
 
 ```
 lambda-layers/
-  ├── mastra/       # mastraフレームワークとその依存関係
+  ├── minimal-mastra/   # mastraフレームワークの最小限の必要ファイルのみ
   │   └── nodejs/
   │       ├── package.json
   │       └── node_modules/
   │           └── mastra/
+  │               ├── package.json
+  │               └── dist/
+  │                   └── index.js
   │
-  └── utils/        # その他ユーティリティ（Axios、AWS SDK等）
+  └── utils/            # その他ユーティリティ（Axios、AWS SDK等）
       └── nodejs/
           ├── package.json
           └── node_modules/
@@ -60,6 +63,19 @@ lambda-layers/
               ├── form-data/
               └── @aws-sdk/
 ```
+
+### 最小限レイヤーの利用
+
+mastraパッケージ全体が大きすぎる（250MB超の可能性）ため、必要最小限のファイルだけを含むカスタムレイヤーを作成しています：
+
+1. **必要なファイルのみの抽出**：
+   - `index.js`（メインエントリーポイント）
+   - `package.json`（バージョン情報）
+   - 必須の依存関係のみ
+
+2. **デプロイのカスタマイズ**：
+   - GitHub Actionsで自動的に必要なファイルだけをコピー
+   - サイズを小さく保ち、Lambda関数のサイズ制限を回避
 
 ### レイヤーの利点
 

@@ -1,0 +1,6 @@
+{
+  "name": "minimal-mastra-layer",
+  "version": "1.0.0",
+  "description": "Minimal Mastra framework layer for Lambda",
+  "dependencies": {}
+}
