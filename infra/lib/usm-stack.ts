@@ -187,6 +187,8 @@ export class UsmStack extends cdk.Stack {
       // ECRからイメージを使用
       code: lambda.DockerImageCode.fromEcr(ecrRepo, { tag: 'latest' }),
       memorySize: 256,
+      // ARM64アーキテクチャを指定（Dockerfileのイメージアーキテクチャと一致させる）
+      architecture: lambda.Architecture.ARM_64,
       timeout: cdk.Duration.seconds(30),
       environment: {
         // 環境変数
