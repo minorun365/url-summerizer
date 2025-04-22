@@ -173,6 +173,7 @@ export class UsmStack extends cdk.Stack {
     
     // Docker Lambdaを使用したAPIハンドラー
     const apiHandler = new lambda.DockerImageFunction(this, 'ApiHandler', {
+      // DockerイメージをビルドしてLambdaに使用
       code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../..')),
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
