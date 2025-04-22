@@ -8,6 +8,7 @@ const app = new cdk.App();
 // 環境変数
 const awsRegion = process.env.AWS_REGION || 'us-west-2'; // オレゴンリージョン
 const envName = process.env.ENV_NAME || 'dev';
+const awsAccountId = process.env.AWS_ACCOUNT_ID;
 
 // タグ
 const tags = {
@@ -16,8 +17,9 @@ const tags = {
   Owner: 'personal',
 };
 
-// デプロイ環境 - AWSの認証情報から自動的にアカウント情報が取得される
+// デプロイ環境
 const env = {
+  account: awsAccountId,
   region: awsRegion
 };
 
