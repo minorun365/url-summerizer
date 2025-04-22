@@ -85,6 +85,13 @@ jobs:
           cd infra
           npm install
       
+      # AWS認証設定（OIDC連携）- ECR作成前に認証を行う
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       # ECR作成と認証
       - name: Set up ECR
         id: ecr-setup
@@ -93,18 +100,20 @@ jobs:
           REPO_NAME="url-summerizer-lambda-${{ env.ENV_NAME }}"
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
           
+          # AWS アカウントIDを取得
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          
           # リポジトリが存在しない場合は作成
           aws ecr describe-repositories --repository-names $REPO_NAME || aws ecr create-repository --repository-name $REPO_NAME
           
           # ECRログイン
           aws ecr get-login-password | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       
       # DockerイメージをECRにプッシュ
       - name: Push Docker image to ECR
         run: |
-          REPO_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ steps.ecr-setup.outputs.repo_name }}"
+          REPO_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ steps.ecr-setup.outputs.repo_name }}"
           
           # イメージにタグ付け
           docker tag url-summerizer-lambda:latest $REPO_URI:latest
