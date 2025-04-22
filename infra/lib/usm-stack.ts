@@ -254,60 +254,50 @@ export class UsmStack extends cdk.Stack {
     // APIリソースとメソッド
     const summarize = api.root.addResource('summarize');
     
-    // より明示的なLambda統合設定（CORS対応）
-    const lambdaIntegration = new apigateway.LambdaIntegration(apiHandler, {
-      proxy: true,
+    // CORS設定の強化 - プリフライトリクエスト（OPTIONS）用のモックメソッド
+    summarize.addMethod('OPTIONS', new apigateway.MockIntegration({
       integrationResponses: [
         {
-          // すべての成功レスポンスに対して
           statusCode: '200',
           responseParameters: {
-            // 必要なCORSヘッダーを追加
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'",
+            'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET,POST'",
             'method.response.header.Access-Control-Allow-Origin': "'*'",
-            'method.response.header.Access-Control-Allow-Methods': "'GET,POST,OPTIONS'",
-            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Requested-With,Authorization'"
-          }
+          },
+          // 空のレスポンスボディ
+          responseTemplates: {
+            'application/json': ''
+          },
         },
-        {
-          // エラーレスポンスに対しても同様に
-          selectionPattern: '.*',
-          statusCode: '500',
-          responseParameters: {
-            'method.response.header.Access-Control-Allow-Origin': "'*'",
-            'method.response.header.Access-Control-Allow-Methods': "'GET,POST,OPTIONS'",
-            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Requested-With,Authorization'"
-          }
-        }
-      ]
-    });
-    
-    // POSTメソッドの設定
-    summarize.addMethod('POST', lambdaIntegration, {
+      ],
+      // OPTIONSリクエストに対するリクエストテンプレート
+      requestTemplates: {
+        'application/json': '{"statusCode": 200}'
+      },
+    }), {
+      // OPTIONSメソッドのレスポンス設定
       methodResponses: [
         {
           statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+            'method.response.header.Access-Control-Allow-Origin': true,
+          },
           responseModels: {
             'application/json': apigateway.Model.EMPTY_MODEL,
           },
-          responseParameters: {
-            'method.response.header.Access-Control-Allow-Origin': true,
-            'method.response.header.Access-Control-Allow-Methods': true,
-            'method.response.header.Access-Control-Allow-Headers': true
-          }
         },
-        {
-          statusCode: '500',
-          responseModels: {
-            'application/json': apigateway.Model.ERROR_MODEL,
-          },
-          responseParameters: {
-            'method.response.header.Access-Control-Allow-Origin': true,
-            'method.response.header.Access-Control-Allow-Methods': true,
-            'method.response.header.Access-Control-Allow-Headers': true
-          }
-        }
-      ]
+      ],
     });
+    
+    // 通常のAPI呼び出し用のプロキシ統合
+    const lambdaIntegration = new apigateway.LambdaIntegration(apiHandler, {
+      proxy: true,
+    });
+    
+    // POSTメソッドの追加
+    summarize.addMethod('POST', lambdaIntegration);
 
     // ------------------------------------
     // 出力
