@@ -46,14 +46,16 @@ npx cdk deploy
 
 ```
 lambda-layers/
-  ├── minimal-mastra/   # mastraフレームワークの最小限の必要ファイルのみ
+  ├── minimal-mastra/   # mastraフレームワークの必要ファイル
   │   └── nodejs/
   │       ├── package.json
   │       └── node_modules/
   │           └── mastra/
   │               ├── package.json
   │               └── dist/
-  │                   └── index.js
+  │                   ├── index.js
+  │                   ├── chunk-7OXWUU2Q.js  # 依存チャンクファイル
+  │                   └── ...  # 他の必要なチャンクファイル
   │
   └── utils/            # その他ユーティリティ（Axios、AWS SDK等）
       └── nodejs/

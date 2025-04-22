@@ -70,10 +70,16 @@ jobs:
           npm install --production
           
           echo "最小限のMastraレイヤーを作成します..."
-          mkdir -p ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/dist
-          # 必要なファイルだけをコピー
-          cp -r node_modules/mastra/dist/index.js ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/dist/
+          mkdir -p ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra
+          # mastraディレクトリ全体をコピー（チャンクファイルも含む）
+          cp -r node_modules/mastra/dist ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/
           cp -r node_modules/mastra/package.json ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/
+          
+          # チャンクファイルが存在するか確認
+          echo "Mastraのチャンクファイルを確認..."
+          find ../lambda-layers/minimal-mastra/nodejs/node_modules/mastra/dist -name "chunk-*.js" | while read -r chunk_file; do
+            echo "  ✓ $(basename "$chunk_file")"
+          done
           
           # 依存関係の調査
           echo "Mastraの依存関係を調査して必要なものをコピーします..."
