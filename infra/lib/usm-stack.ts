@@ -217,11 +217,6 @@ export class UsmStack extends cdk.Stack {
     });
     apiHandler.addToRolePolicy(bedrockPolicy);
 
-    // フロントエンドのURLを取得（CloudFrontドメインなど）
-    const frontendUrl = process.env.CLOUDFRONT_DOMAIN_NAME ? 
-      `https://${process.env.CLOUDFRONT_DOMAIN_NAME}` : 
-      (customDomain ? `https://${customDomain}` : '*');
-
     // API Gateway - REST API
     const api = new apigateway.RestApi(this, 'UsmApi', {
       restApiName: `usm-api-${envName}`,
@@ -233,13 +228,8 @@ export class UsmStack extends cdk.Stack {
         metricsEnabled: true
       },
       defaultCorsPreflightOptions: {
-        // 明示的にCloudFrontドメインとカスタムドメインを許可
-        allowOrigins: [
-          // ワイルドカード(*) と特定ドメインは混在できないため、特定ドメインのみを指定
-          frontendUrl,
-          'https://dm4kttwg4xgfz.cloudfront.net',
-          'http://localhost:3000'
-        ],
+        // ワイルドカードを使用した場合は認証情報を含められない
+        allowOrigins: ['*'],
         // 必要なメソッドのみ許可
         allowMethods: ['GET', 'POST', 'OPTIONS'],
         allowHeaders: [
@@ -249,7 +239,8 @@ export class UsmStack extends cdk.Stack {
           'Origin',
           'Accept'
         ],
-        allowCredentials: true, // 認証情報を含める
+        // ワイルドカードオリジンの場合、認証情報を含められない
+        allowCredentials: false,
         // レスポンスに CORS ヘッダーを確実に含める
         exposeHeaders: ['WWW-Authenticate', 'Server-Authorization'],
         maxAge: cdk.Duration.seconds(86400), // キャッシュ期間24時間
