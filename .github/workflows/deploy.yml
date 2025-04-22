@@ -62,63 +62,69 @@ jobs:
           NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
           NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
 
-      # npm workspacesを利用したLambda Layersの依存関係インストール
+      # Lambda Layersの依存関係インストール - 直接アプローチ
       - name: Prepare Lambda Layers
         run: |
-          cd backend
+          # 必要なディレクトリ構造を作成
+          mkdir -p backend/layers/mastra-core/nodejs/node_modules
+          mkdir -p backend/layers/mastra-deps/nodejs/node_modules
           
-          # workspacesを使って一括インストール
-          echo "npm workspacesを使用して依存関係をインストールします..."
-          npm install --workspaces --production
+          # mastra-coreレイヤーの設定
+          echo '{
+            "name": "mastra-core-layer",
+            "version": "1.0.0",
+            "description": "Mastra core layer for Lambda",
+            "dependencies": {
+              "mastra": "^0.5.0-alpha.8"
+            }
+          }' > backend/layers/mastra-core/nodejs/package.json
           
-          # mastra-coreレイヤーの内容確認
-          echo "Mastraコアレイヤーの内容:"
-          find layers/mastra-core -type f | grep -v "node_modules" | sort
-          du -sh layers/mastra-core
+          # mastra-depsレイヤーの設定
+          echo '{
+            "name": "mastra-deps-layer",
+            "version": "1.0.0",
+            "description": "Mastra dependencies layer for Lambda",
+            "dependencies": {
+              "commander": "^11.0.0",
+              "@huggingface/inference": "^2.6.1"
+            }
+          }' > backend/layers/mastra-deps/nodejs/package.json
           
-          # mastra-depsレイヤーに必要なパッケージがあることを確認
-          echo "Mastra依存パッケージレイヤーの内容:"
-          find layers/mastra-deps/nodejs/node_modules -maxdepth 2 -type d | sort
+          # 各レイヤーごとに依存関係をインストール
+          echo "Mastra core レイヤーの依存関係をインストールしています..."
+          cd backend/layers/mastra-core/nodejs
+          npm install --production
+          cd ../../../../
           
-          # インストールされたcommanderパッケージの確認
-          if [ -d "layers/mastra-deps/nodejs/node_modules/commander" ]; then
-            echo "✓ commanderパッケージが正常にインストールされました"
-            du -sh layers/mastra-deps/nodejs/node_modules/commander
-          else
-            echo "❌ commanderパッケージが見つかりません"
-            
-            # 追加でインストール
-            echo "commanderパッケージを明示的にインストールします..."
-            cd layers/mastra-deps/nodejs
-            npm install commander@11.0.0 --save
-            cd ../../..
-          fi
+          echo "Mastra dependencies レイヤーの依存関係をインストールしています..."
+          cd backend/layers/mastra-deps/nodejs
+          npm install --production
+          cd ../../../../
           
-          # @huggingface/inferenceパッケージの確認
-          if [ -d "layers/mastra-deps/nodejs/node_modules/@huggingface/inference" ]; then
-            echo "✓ @huggingface/inferenceパッケージが正常にインストールされました"
-            du -sh layers/mastra-deps/nodejs/node_modules/@huggingface/inference
-          else
-            echo "❌ @huggingface/inferenceパッケージが見つかりません"
-            
-            # 追加でインストール
-            echo "@huggingface/inferenceパッケージを明示的にインストールします..."
-            cd layers/mastra-deps/nodejs
-            npm install @huggingface/inference@2.6.1 --save
-            cd ../../..
-          fi
-          
-          # Lambda関数ディレクトリの依存関係確認
-          echo "Lambda関数の依存関係:"
-          find lambda/node_modules -maxdepth 2 -type d | sort
+          # Lambdaコード用の依存関係
+          mkdir -p backend/lambda/node_modules
+          cp backend/lambda/package.json backend/lambda/
+          cd backend/lambda
+          npm install --production
+          cd ../../
           
           # Utilsレイヤーの依存関係をインストール
-          cd ../lambda-layers/utils/nodejs
+          cd lambda-layers/utils/nodejs
           npm install --production
+          cd ../../../
           
-          # レイヤーのサイズを確認
+          # 各レイヤーのサイズを確認
+          echo "Mastra core レイヤーのサイズ:"
+          du -sh backend/layers/mastra-core
+          
+          echo "Mastra dependencies レイヤーのサイズ:"
+          du -sh backend/layers/mastra-deps
+          
+          echo "Lambda関数ディレクトリのサイズ:"
+          du -sh backend/lambda
+          
           echo "Utilsレイヤーのサイズ:"
-          du -sh .
+          du -sh lambda-layers/utils
       
       # CDK用の依存関係インストール
       - name: Install CDK Dependencies
