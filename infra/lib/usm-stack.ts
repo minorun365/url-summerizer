@@ -8,6 +8,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as path from 'path';
 
 // URL Summerizerのスタック定義
@@ -171,10 +172,24 @@ export class UsmStack extends cdk.Stack {
     // Lambda - バックエンド
     // ------------------------------------
     
+    // DockerイメージURIをコンテキストから取得（GitHub Actionsでビルドされたイメージ）
+    const dockerImageUri = this.node.tryGetContext('dockerImageUri');
+    
     // Docker Lambdaを使用したAPIハンドラー
     const apiHandler = new lambda.DockerImageFunction(this, 'ApiHandler', {
-      // DockerイメージをビルドしてLambdaに使用
-      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../..')),
+      // 外部ビルドイメージがあればそれを使用、なければローカルビルド
+      code: dockerImageUri 
+        ? lambda.DockerImageCode.fromEcr(
+            ecr.Repository.fromRepositoryName(
+              this, 
+              'ECRRepo', 
+              `url-summerizer-lambda-${envName}`
+            ),
+            {
+              tag: 'latest'
+            }
+          )
+        : lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../..')),
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       environment: {
