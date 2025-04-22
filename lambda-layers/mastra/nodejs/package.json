@@ -1,0 +1,8 @@
+{
+  "name": "mastra-layer",
+  "version": "1.0.0",
+  "description": "Mastra framework layer for Lambda",
+  "dependencies": {
+    "mastra": "^0.5.0-alpha.8"
+  }
+}

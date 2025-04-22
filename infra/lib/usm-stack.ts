@@ -170,11 +170,29 @@ export class UsmStack extends cdk.Stack {
     // ------------------------------------
     // Lambda - バックエンド
     // ------------------------------------
-    // APIハンドラーのLambda関数 - サイズ制限問題対策
+    
+    // Lambda Layers
+    
+    // Mastraレイヤー - mastraフレームワークとその依存関係
+    const mastraLayer = new lambda.LayerVersion(this, 'MastraLayer', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda-layers/mastra')),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
+      description: 'Mastra framework and dependencies',
+    });
+
+    // ユーティリティレイヤー - その他の依存関係（Axios, AWS SDK等）
+    const utilsLayer = new lambda.LayerVersion(this, 'UtilsLayer', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda-layers/utils')),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
+      description: 'Axios, AWS SDK, and other utilities',
+    });
+    
+    // APIハンドラーのLambda関数 - レイヤーを使用
     const apiHandler = new lambda.Function(this, 'ApiHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/lambda')), // lambdaディレクトリだけを含める
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/lambda')),
+      layers: [mastraLayer, utilsLayer], // レイヤーをアタッチ
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       environment: {

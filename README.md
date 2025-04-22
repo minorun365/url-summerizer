@@ -2,6 +2,14 @@
 
 URL内容の要約アプリケーション
 
+## アーキテクチャ
+
+このアプリケーションは、以下のコンポーネントで構成されています：
+
+- フロントエンド: Next.js（静的サイト、CloudFrontとS3でホスティング）
+- バックエンド: AWS Lambda + API Gateway
+- 認証: Amazon Cognito
+
 ## デプロイ手順
 
 ### 前提条件
@@ -10,18 +18,54 @@ URL内容の要約アプリケーション
 2. AWS認証情報が設定されていること
 3. Node.jsとnpmがインストールされていること
 
-### バックエンドのデプロイ
+### ローカルでのデプロイ
 
 ```bash
-# backendディレクトリで依存パッケージをインストール
-cd backend
-npm install
+# Lambda Layersの依存関係をインストール
+cd lambda-layers/mastra/nodejs
+npm install --production
+
+cd ../../utils/nodejs
+npm install --production
 
 # infraディレクトリでCDKをデプロイ
-cd ../infra
+cd ../../infra
 npm install
 npx cdk deploy
 ```
+
+### GitHub Actionsによる自動デプロイ
+
+このリポジトリには、GitHub Actionsのワークフロー設定が含まれています。`main`または`dev`ブランチにプッシュすると、自動的にデプロイが実行されます。
+
+## AWS Lambda Layers
+
+このプロジェクトでは、Lambda関数のサイズを最適化するためにLambda Layersを使用しています。
+
+### レイヤー構造
+
+```
+lambda-layers/
+  ├── mastra/       # mastraフレームワークとその依存関係
+  │   └── nodejs/
+  │       ├── package.json
+  │       └── node_modules/
+  │           └── mastra/
+  │
+  └── utils/        # その他ユーティリティ（Axios、AWS SDK等）
+      └── nodejs/
+          ├── package.json
+          └── node_modules/
+              ├── axios/
+              ├── form-data/
+              └── @aws-sdk/
+```
+
+### レイヤーの利点
+
+- **サイズ制限の克服**: Lambda関数本体のサイズを縮小し、250MBの制限を回避
+- **依存関係の共有**: 複数のLambda関数間で依存関係を共有することが可能
+- **デプロイ時間の短縮**: コード変更時のみデプロイすればよく、依存関係のレイヤーは再利用可能
 
 ## CORS問題が発生した場合の対処方法
 
@@ -41,17 +85,20 @@ CORS（Cross-Origin Resource Sharing）エラーが発生した場合は、以�
 4. **デバッグのためのLambda関数エラーログ確認**
    - CloudWatch Logsでエラーメッセージを確認する
 
-## mastraパッケージがない場合のエラー
+## ES Moduleのインポート問題
 
-Lambda関数で「Cannot find module 'mastra'」エラーが発生した場合：
+Lambda関数内でのESモジュール（例：mastra）のインポートエラーが発生した場合：
 
-1. backendディレクトリでnpm installを実行してから、CDKをデプロイしてください
-
-```bash
-cd backend
-npm install
-cd ../infra
-npx cdk deploy
+```
+require() of ES Module /var/task/node_modules/mastra/dist/index.js not supported.
+Instead change the require of /var/task/node_modules/mastra/dist/index.js to a dynamic import()
 ```
 
-2. これはLambda関数がnode_modulesディレクトリ内のmastraパッケージを見つけられないために発生します
+対策として動的インポートを使用してください：
+
+```javascript
+// 修正前
+const { Agent, createTool } = require('mastra');
+
+// 修正後
+const { Agent, createTool } = await import('mastra');

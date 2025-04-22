@@ -62,37 +62,27 @@ jobs:
           NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
           NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
 
-      # Lambda依存関係を適切にバンドル
-      - name: Prepare Lambda Dependencies
+      # Lambda Layersの依存関係をインストール
+      - name: Prepare Lambda Layers
         run: |
-          cd backend
+          # Mastraレイヤーの依存関係をインストール
+          cd lambda-layers/mastra/nodejs
           npm install --production
           
-          # すべての依存関係を含むpackage.jsonを作成
-          cat > lambda/package.json <<EOL
-          {
-            "name": "url-summerizer-lambda",
-            "version": "1.0.0",
-            "description": "URL要約Lambda関数",
-            "main": "index.js",
-            "dependencies": {
-              "mastra": "^0.5.0-alpha.8",
-              "@aws-sdk/client-bedrock-runtime": "^3.515.0",
-              "axios": "^1.6.7",
-              "form-data": "^4.0.0",
-              "langfuse": "^2.0.0"
-            }
-          }
-          EOL
-          
-          # Lambda用に依存関係をインストール
-          cd lambda
-          npm install --production
-          
-          # サイズ確認とリスト表示
-          echo "Lambda フォルダサイズ:"
+          # レイヤーのサイズを確認
+          echo "Mastraレイヤーのサイズ:"
           du -sh .
-          echo "インストールされた依存パッケージ一覧："
+          echo "Mastraレイヤーに含まれるパッケージ:"
+          find node_modules -maxdepth 2 -type d | sort
+          
+          # Utilsレイヤーの依存関係をインストール
+          cd ../../utils/nodejs
+          npm install --production
+          
+          # レイヤーのサイズを確認
+          echo "Utilsレイヤーのサイズ:"
+          du -sh .
+          echo "Utilsレイヤーに含まれるパッケージ:"
           find node_modules -maxdepth 2 -type d | sort
       
       # CDK用の依存関係インストール

@@ -1,0 +1,11 @@
+{
+  "name": "utils-layer",
+  "version": "1.0.0",
+  "description": "Utilities layer for Lambda",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.515.0",
+    "axios": "^1.6.7",
+    "form-data": "^4.0.0",
+    "langfuse": "^2.0.0"
+  }
+}
