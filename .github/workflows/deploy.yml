@@ -103,7 +103,18 @@ jobs:
           
           # Lambdaコード用の依存関係
           mkdir -p backend/lambda/node_modules
-          cp backend/lambda/package.json backend/lambda/
+          # package.jsonをコピーせず直接設定
+          echo '{
+            "name": "url-summerizer-lambda",
+            "version": "1.0.0",
+            "description": "URL要約Lambda関数",
+            "main": "index.js",
+            "dependencies": {
+              "@aws-sdk/client-bedrock-runtime": "^3.515.0",
+              "axios": "^1.6.7",
+              "langfuse": "^2.0.0"
+            }
+          }' > backend/lambda/package.json
           cd backend/lambda
           npm install --production
           cd ../../
