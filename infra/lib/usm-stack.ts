@@ -171,35 +171,9 @@ export class UsmStack extends cdk.Stack {
     // Lambda - バックエンド
     // ------------------------------------
     
-    // Lambda Layers
-    
-    // Mastraコアレイヤー - mastraパッケージ本体のみ
-    const mastraCoreLayer = new lambda.LayerVersion(this, 'MastraCoreLayer', {
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/layers/mastra-core')),
-      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
-      description: 'Mastra framework core',
-    });
-
-    // Mastra依存パッケージレイヤー - commanderなどmastraが依存するパッケージ
-    const mastraDepsLayer = new lambda.LayerVersion(this, 'MastraDepsLayer', {
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/layers/mastra-deps')),
-      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
-      description: 'Mastra framework dependencies',
-    });
-
-    // ユーティリティレイヤー - その他の依存関係（Axios, AWS SDK等）
-    const utilsLayer = new lambda.LayerVersion(this, 'UtilsLayer', {
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambda-layers/utils')),
-      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
-      description: 'Axios, AWS SDK, and other utilities',
-    });
-    
-    // APIハンドラーのLambda関数 - レイヤーを使用
-    const apiHandler = new lambda.Function(this, 'ApiHandler', {
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/lambda')),
-      layers: [mastraCoreLayer, mastraDepsLayer, utilsLayer], // レイヤーをアタッチ
+    // Docker Lambdaを使用したAPIハンドラー
+    const apiHandler = new lambda.DockerImageFunction(this, 'ApiHandler', {
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../..')),
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
       environment: {

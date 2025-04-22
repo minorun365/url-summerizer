@@ -7,8 +7,39 @@ URL内容の要約アプリケーション
 このアプリケーションは、以下のコンポーネントで構成されています：
 
 - フロントエンド: Next.js（静的サイト、CloudFrontとS3でホスティング）
-- バックエンド: AWS Lambda + API Gateway
+- バックエンド: AWS Lambda（Docker）+ API Gateway
 - 認証: Amazon Cognito
+
+## Docker Lambdaについて
+
+このプロジェクトでは依存関係の複雑さとサイズ制限の問題を解決するため、Docker Lambdaアプローチを採用しています。
+
+### Docker Lambdaの利点
+
+1. **サイズ制限の大幅緩和**
+   - 通常のLambdaは解凍後250MB制限
+   - Docker LambdaはOCIイメージで10GB制限（容量の拡大）
+
+2. **依存関係の完全な制御**
+   - ESモジュール（mastraパッケージなど）の互換性問題を解決
+   - コンテナ内にすべての依存関係を含めることが可能
+
+3. **環境の一貫性**
+   - 開発環境と本番環境の一致性確保
+   - システムライブラリも必要に応じて含められる
+
+### Docker Lambda実装構造
+
+```
+Dockerfile
+└── Lambda関数
+    ├── package.json (依存関係定義)
+    ├── npm modules (mastra, axios, etc.)
+    └── Lambda関数コード
+        ├── index.js
+        ├── scraping.js
+        └── summarize.js
+```
 
 ## デプロイ手順
 
@@ -17,16 +48,16 @@ URL内容の要約アプリケーション
 1. AWS CLIがインストールされていること
 2. AWS認証情報が設定されていること
 3. Node.jsとnpmがインストールされていること
+4. Dockerがインストールされていること
 
 ### ローカルでのデプロイ
 
 ```bash
-# npm workspacesを使って依存関係をインストール
-cd backend
-npm install --workspaces --production
+# Dockerイメージをビルド
+docker buildx build --platform linux/amd64 -t url-summerizer-lambda:latest .
 
 # infraディレクトリでCDKをデプロイ
-cd ../infra
+cd infra
 npm install
 npx cdk deploy
 ```
@@ -34,67 +65,6 @@ npx cdk deploy
 ### GitHub Actionsによる自動デプロイ
 
 このリポジトリには、GitHub Actionsのワークフロー設定が含まれています。`main`または`dev`ブランチにプッシュすると、自動的にデプロイが実行されます。
-
-## npm workspacesを活用したLambda Layers
-
-このプロジェクトでは、Lambda関数のサイズを最適化するためにLambda LayersとnpmのWorkspaces機能を組み合わせて使用しています。
-
-### ワークスペース構造
-
-```
-backend/
-├── package.json (workspacesルート)
-├── lambda/      (Lambda関数コード)
-│   └── package.json
-└── layers/
-    ├── mastra-core/   (mastraパッケージ本体)
-    │   └── nodejs/
-    │       └── package.json
-    └── mastra-deps/   (mastraの依存パッケージ)
-        └── nodejs/
-            └── package.json
-```
-
-### レイヤー構成の特長
-
-```
-Lambda関数
-│
-├── mastra-coreレイヤー
-│   └── nodejs/
-│       └── node_modules/
-│           └── mastra/
-│               ├── package.json
-│               └── dist/
-│                   ├── index.js
-│                   └── ...
-│
-├── mastra-depsレイヤー
-│   └── nodejs/
-│       └── node_modules/
-│           ├── commander/
-│           └── @huggingface/
-│
-└── utilsレイヤー
-    └── nodejs/
-        └── node_modules/
-            ├── axios/
-            ├── form-data/
-            └── @aws-sdk/
-```
-
-### npm workspacesを活用する利点
-
-1. **依存関係管理の簡素化**:
-   - 単一のコマンド(`npm install --workspaces`)で全ての依存関係をインストール可能
-   - 各レイヤーの依存関係が個別に管理され、クリーンな構造を維持
-
-2. **サイズ制限の回避**:
-   - 依存関係を複数のレイヤーに分散し、各レイヤーを50MB以下に保つ
-   - mastraコアとその依存関係を分離することで、複雑な依存関係チェーンを適切に処理
-
-3. **ESモジュールの依存解決**:
-   - commanderなどのESモジュールの依存関係を明示的に含めることで、実行時のエラーを防止
 
 ## CORS問題が発生した場合の対処方法
 
@@ -133,16 +103,4 @@ const { Agent, createTool } = require('mastra');
 const { Agent, createTool } = await import('mastra');
 ```
 
-## その他の依存関係問題
-
-依存パッケージが見つからないエラー（例: commander）が発生した場合：
-
-```
-Cannot find package 'commander' imported from /opt/nodejs/node_modules/mastra/dist/index.js
-```
-
-このような場合は、以下の対処が必要です：
-
-1. 必要な依存パッケージを `backend/layers/mastra-deps/package.json` に追加
-2. `npm install --workspaces --production` を実行して依存関係を更新
-3. レイヤー構造を確認し、必要なパッケージが正しくインストールされているか確認
+この問題はDocker Lambdaを使用することでより確実に解決できます。Dockerコンテナ内ではESモジュールの依存関係が正しく処理されるため、import/requireの問題を回避できます。
