@@ -153,35 +153,32 @@ jobs:
           echo "ディスク容量解放後の確認"
           df -h
 
-      # CDKの準備（ブートストラップ前）
-      - name: Prepare for CDK
-        run: |
-          cd infra
-          npm ci  # 依存関係を確実にインストール
-          npm list aws-cdk-lib || npm install aws-cdk-lib
-          # キャッシュをクリア
-          rm -rf cdk.out
-
-      # CDKブートストラップ
-      - name: CDK Bootstrap
-        run: |
-          cd infra
-          # TypeScriptの型チェックをスキップするための環境変数設定
-          export TS_NODE_TRANSPILE_ONLY=1
-          npx cdk bootstrap
-
-      # CDKデプロイ
+      # CDKの準備と実行（直接デプロイ）
       - name: Deploy with CDK
         run: |
-          cd infra
-          # TypeScriptの型チェックをスキップするための環境変数設定
-          export TS_NODE_TRANSPILE_ONLY=1
+          # ディレクトリパスの深さ制限問題を回避するために /tmp に作業ディレクトリを変更
+          TEMP_DIR=$(mktemp -d)
+          cp -r infra/* $TEMP_DIR/
           
-          # コンテキスト変数としてイメージURIを渡す
+          cd $TEMP_DIR
+          echo "一時作業ディレクトリ: $TEMP_DIR"
+          
+          # 依存関係をインストール
+          npm ci
+          
+          # 環境変数を設定
+          export TS_NODE_TRANSPILE_ONLY=1
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          
+          # CDK集約ブートストラップとデプロイ（ローカルにアセットをキャッシュせず）
+          npx cdk bootstrap --no-asset-metadata
+          
+          # イメージURIを指定してデプロイ
           npx cdk deploy --all \
             --require-approval never \
             --context dockerImageUri=$IMAGE_URI \
-            --exclusively
+            --no-rollback \
+            --verbose
         env:
           ENV_NAME: ${{ env.ENV_NAME }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
