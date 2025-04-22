@@ -253,7 +253,61 @@ export class UsmStack extends cdk.Stack {
 
     // APIリソースとメソッド
     const summarize = api.root.addResource('summarize');
-    summarize.addMethod('POST', new apigateway.LambdaIntegration(apiHandler));
+    
+    // より明示的なLambda統合設定（CORS対応）
+    const lambdaIntegration = new apigateway.LambdaIntegration(apiHandler, {
+      proxy: true,
+      integrationResponses: [
+        {
+          // すべての成功レスポンスに対して
+          statusCode: '200',
+          responseParameters: {
+            // 必要なCORSヘッダーを追加
+            'method.response.header.Access-Control-Allow-Origin': "'*'",
+            'method.response.header.Access-Control-Allow-Methods': "'GET,POST,OPTIONS'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Requested-With,Authorization'"
+          }
+        },
+        {
+          // エラーレスポンスに対しても同様に
+          selectionPattern: '.*',
+          statusCode: '500',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'*'",
+            'method.response.header.Access-Control-Allow-Methods': "'GET,POST,OPTIONS'",
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Requested-With,Authorization'"
+          }
+        }
+      ]
+    });
+    
+    // POSTメソッドの設定
+    summarize.addMethod('POST', lambdaIntegration, {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseModels: {
+            'application/json': apigateway.Model.EMPTY_MODEL,
+          },
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+            'method.response.header.Access-Control-Allow-Headers': true
+          }
+        },
+        {
+          statusCode: '500',
+          responseModels: {
+            'application/json': apigateway.Model.ERROR_MODEL,
+          },
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+            'method.response.header.Access-Control-Allow-Headers': true
+          }
+        }
+      ]
+    });
 
     // ------------------------------------
     // 出力
